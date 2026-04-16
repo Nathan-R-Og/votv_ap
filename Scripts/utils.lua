@@ -28,3 +28,11 @@ function extract_keys(original_table)
     end
     return keys_only_table
 end
+
+local existing_hooks = {}
+function RegisterUniqueHook(hook, func)
+    if not array_contains(existing_hooks, hook) then
+        table.insert(existing_hooks, hook)
+        RegisterHook(hook, func)
+    end
+end

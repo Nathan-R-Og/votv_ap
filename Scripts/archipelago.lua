@@ -11,118 +11,49 @@
 local AP = require("lua-apclientpp")
 
 require("item_map")
-require("items")
 require("locations")
 require("utils")
 
 -- global to this mod
-local game_name = "Voices of the Void"
+local game_name = "Manual_Voices of the Void_Le Codex"
 local items_handling = 7  -- full remote
 local client_version = {0, 6, 7}  -- optional, defaults to lib version
 local message_format = AP.RenderFormat.TEXT
 ---@type APClient
 ap = nil
-local checked_locations = {}
+local LocationsToCheck = {}
 local CheckedLocations = {}
-local actually_sent_locations = {}
--- ScoutedLocations = {}
--- ChapterUnlocks = {
---         ["Hikari Chapter1 Unlock"]                          = false, --"Hikari1",
--- 		["Hikari Chapter2 Unlock"]                          = false, --"Hikari2",
--- 		["Hikari Chapter3 Unlock"]                          = false, --"Hikari3",
--- 		["Hikari Chapter4 Unlock"]                          = false, --"Hikari4",
--- 		["Hikari Chapter5 Unlock"]                          = false, --"Hikari5",
--- 		["Ochette Chapter1 Unlock"]                         = false, --"Ochette1",
--- 		["Ochette Chapter2 Acta Unlock"]                    = false, --"Ochette2A",
--- 		["Ochette Chapter2 Tera Unlock"]                    = false, --"Ochette2T",
--- 		["Ochette Chapter2 Glacis Unlock"]                  = false, --"Ochette2G",
--- 		["Ochette Chapter3 Unlock"]                         = false, --"Ochette3",
--- 		["Castti Chapter1 Unlock"]                          = false, --"Castti1",
--- 		["Castti Chapter2 Sai Unlock"]                      = false, --"Castti2S",
--- 		["Castti Chapter2 Winterbloom Unlock"]              = false, --"Castti2W",
--- 		["Castti Chapter3 Unlock"]                          = false, --"Castti3",
--- 		["Castti Chapter4 Unlock"]                          = false, --"Castti4",
--- 		["Partitio Chapter1 Unlock"]                        = false, --"Partitio1",
--- 		["Partitio Chapter2 Unlock"]                        = false, --"Partitio2",
--- 		["Partitio Chapter3 Unlock"]                        = false, --"Partitio3",
--- 		["Partitio Toto'haha Grand Terry Quest Unlock"]     = false, --"PartitioTGT",
--- 		["Partitio Winterbloom Gramophone Quest Unlock"]    = false, --"PartitioWBG",
--- 		["Partitio Sai Archives Quest Unlock"]              = false, --"PartitioSAQ",
--- 		["Temenos Chapter1 Unlock"]                         = false, --"Temenos1",
--- 		["Temenos Chapter2 Unlock"]                         = false, --"Temenos2",
--- 		["Temenos Chapter3 Stormhail"]                      = false, --"Temenos3S",
--- 		["Temenos Chapter3 Crackridge Unlock"]              = false, --"Temenos3C",
--- 		["Temenos Chapter4 Unlock"]                         = false, --"Temenos4",
--- 		["Osvald Chapter1 Unlock"]                          = false, --"Osvald1",
--- 		["Osvald Chapter3 Unlock"]                          = false, --"Osvald3",
--- 		["Osvald Chapter4 Unlock"]                          = false, --"Osvald4",
--- 		["Osvald Chapter5 Unlock"]                          = false, --"Osvald5",
--- 		["Throne Chapter1 Unlock"]                          = false, --"Throne1",
--- 		["Throne Chapter2 Mother Unlock"]                   = false, --"Throne2M",
--- 		["Throne Chapter2 Father Unlock"]                   = false, --"Throne2F",
--- 		["Throne Chapter3 Mother Unlock"]                   = false, --"Throne3M",
--- 		["Throne Chapter3 Father Unlock"]                   = false, --"Throne3F",
--- 		["Throne Chapter4 Unlock"]                          = false, --"Throne4",
--- 		["Agnea Chapter1 Unlock"]                           = false, --"Agnea1",
--- 		["Agnea Chapter2 Unlock"]                           = false, --"Agnea2",
--- 		["Agnea Chapter3 Unlock"]                           = false, --"Agnea3",
--- 		["Agnea Chapter4 Unlock"]                           = false, --"Agnea4",
--- 		["Agnea Chapter5 Unlock"]                           = false, --"Agnea5",
--- 		["Osvald and Partitio Chapter 1 Unlock"]            = false, --"OsvaldPartitio1",
--- 		["Osvald and Partitio Chapter 2 Unlock"]            = false, --"OsvaldPartitio2",
--- 		["Castti and Ochette Chapter 1 Unlock"]             = false, --"CasttiOchette1",
--- 		["Castti and Ochette Chapter 2 Unlock"]             = false, --"CasttiOchette2",
--- 		["Hikari and Agnea Chapter 1 Unlock"]               = false, --"HikariAgnea1",
--- 		["Hikari and Agnea Chapter 2 Unlock"]               = false, --"HikariAgnea2",
--- 		["Temenos and Throne Chapter 1 Unlock"]             = false, --"TemenosThrone1",
--- 		["Temenos and Throne Chapter 2 Unlock"]             = false, --"TemenosThrone2",
--- 		["Finale"]                                          = false
--- }
--- Characters = {
---     ["Hikari"]   = false, --eFENCER
---     ["Ochette"]  = false, --eHunter
---     ["Castti"]   = false, --eALCHEMIST
---     ["Partitio"] = false, --eMERCHANT
---     ["Temenos"]  = false, --ePRIEST
---     ["Osvald"]   = false, --ePROFESSOR
---     ["Throne"]   = false, --eTHIEF
---     ["Agnea"]    = false, --eDANCER
--- }
--- StartingCharacter = nil
--- StartingChapter = nil
--- FinshsedStartingChapter = false
--- ChangeStartingCharIcon = false
--- CharNameToMap = {
---     ["Agnea"] =     "eMAP_Twn_Fst_1_1",
---     ["Throne"] =    "eMAP_Twn_Cty_1_1",
---     ["Ochette"] =   "eMAP_Twn_Isd_1_1",
---     ["Hikari"] =    "eMAP_Twn_Dst_3_1",
---     ["Temenos"] =   "eMAP_Twn_Mnt_1_1",
---     ["Osvald"] =    "eMAP_Twn_Snw_1_1",
---     ["Castti"] =    "eMAP_Twn_Sea_1_1",
---     ["Partitio"] =  "eMAP_Twn_Wld_1_1",
--- }
 
 -- Goal = nil
--- APNameToChestID = {}
--- print("filling APName to Chest")
--- for ChestID, APName in pairs(ChestIDToName) do
---     if APNameToChestID[APName]~=nil then
---         print(APName)
---     else
---         APNameToChestID[APName] = ChestID
---     end
--- end
--- TODO: user input
-local host = "localhost"
-local slot = "Player1"
-local password = ""
+local item_list = {}
 
-item_list = {}
+function SendItemsHint()
+    local item_count = #item_list - GetRecievedItems()
+    if item_count > 0 then
+        local item = item_list[GetRecievedItems()+1]
+        local ApItemName = GetAPItemNameFromId(item.item)
+        AddHint("You have " .. tostring(item_count) .. " unclaimed item(s).\nNext item is " .. ApItemName .. "\nPress F9 to claim.", 1)
+    else
+        AddHint("You have recieved all items. Yay!", 3)
+    end
+end
 
+function GetNextItem()
+    local i = GetRecievedItems()
+    if i < #item_list then
+        local item = item_list[i+1]
+        if item.index >= i then
+            local ApItemName = GetAPItemNameFromId(item.item)
+            print(ApItemName)
+            AddHint(ApItemName .. " from " .. ap:get_player_alias(item.player), 0)
+            OnItemReceived(ApItemName)
+            SetRecievedItems(item.index+1)
+            SendItemsHint()
+        end
+    end
+end
 
 function connect(server, slot, password)
-    AddHint("Connecting...", 1)
     function on_socket_connected()
         AddHint("Socket connected", 0)
     end
@@ -142,45 +73,19 @@ function connect(server, slot, password)
 
     function on_slot_connected(slot_data)
         AddHint("Slot connected", 0)
-        -- ap:Say("Hello World!")
-        -- ap:Bounce({name="test"}, {game_name})
         ap:ConnectUpdate(nil, {"Lua-APClientPP"})
-        -- --ap:LocationChecks({0x88888888})
-        -- local StartingCharacterToName = {
-        --     "Osvald","Castti","Temenos","Ochette","Partitio","Agnea","Hikari"
-        -- }
-        -- StartingCharacter = StartingCharacterToName[slot_data["StartingCharacter"]]
-        -- StartingChapter = StartingCharacter.." Chapter1 Unlock"
-        -- Goal              = slot_data["Goal"]
-
-        -- Characters[StartingCharacter] = true
-        -- local locations_to_scout = {}
-        -- for locationName, locationID in pairs(LocationNameToAPId) do
-        --     table.insert(locations_to_scout,locationID)
-        -- end
-        --ap:LocationScouts(locations_to_scout, false)
-        --SetInterruptedStoryFlags()
-        --SetStartingCharacterIcons()
+        -- Goal = slot_data["Goal"]
     end
-
 
     function on_slot_refused(reasons)
         AddHint("Slot refused: " .. table.concat(reasons, ", "), 2)
     end
 
-    function on_items_received(recieved_items)
-        print("Items received:")
-        item_list = recieved_items
-        local item_count = #recieved_items - GetRecievedItems()
-        if item_count > 0 then
-            AddHint("You have " .. tostring(item_count) .. " unclaimed items. Press F9 to claim.", 1)
-            local item = recieved_items[GetRecievedItems()+1]
-            local APItemIdToName = table_invert(items)
-            local ApItemName = APItemIdToName[item.item]
-            AddHint("Next item is " .. ApItemName, 0)
-        else
-            AddHint("You have recieved all items. Yay!", 3)
-        end
+    function on_items_received(received_items)
+        print("Items received: " .. #received_items)
+        for _, item in ipairs(received_items) do table.insert(item_list, item) end
+        print("Total items received: " .. #item_list)
+        SendItemsHint()
     end
 
     function on_location_info(items)
@@ -193,12 +98,7 @@ function connect(server, slot, password)
                 if APLocationName == nil then
                     print("we sajdklajskl")
                 end
-                local chestID = APNameToChestID[APLocationName]
-                if chestID==nil then
-                    print("we have messed up")
-                    break
-                end
-                ScoutedLocations[chestID] = {["ItemName"] = ap:get_item_name(item.item,ap:get_player_game(item.player)),["PlayerName"] = ap:get_player_alias(item.player)}
+                ScoutedLocations[chestID] = {["ItemName"] = ap:get_item_name(item.item,ap:get_player_game(item.player)), ["PlayerName"] = ap:get_player_alias(item.player)}
             end
         end
     end
@@ -208,7 +108,7 @@ function connect(server, slot, password)
         print("Locations checked:" .. table.concat(locations, ", "))
         print("Checked locations: " .. table.concat(ap.checked_locations, ", "))
         for _, LocationID in ipairs(locations) do
-            checked_locations[LocationID] = true
+            CheckedLocations[LocationID] = true
         end
     end
 
@@ -261,7 +161,7 @@ function connect(server, slot, password)
 
 
     local uuid = ""
-    ap = AP(uuid, game_name, server);
+    ap = AP(uuid, game_name, server)
     AddHint("Connecting to " .. server .. " ...", 1)
     ap:set_socket_connected_handler(on_socket_connected)
     ap:set_socket_error_handler(on_socket_error)
@@ -270,118 +170,74 @@ function connect(server, slot, password)
     ap:set_slot_connected_handler(on_slot_connected)
     ap:set_slot_refused_handler(on_slot_refused)
     ap:set_items_received_handler(on_items_received)
-    -- ap:set_location_info_handler(on_location_info)
-    -- ap:set_location_checked_handler(on_location_checked)
-    -- ap:set_data_package_changed_handler(on_data_package_changed)
-    -- ap:set_print_handler(on_print)
-    -- ap:set_print_json_handler(on_print_json)
-    -- ap:set_bounced_handler(on_bounced)
-    -- ap:set_retrieved_handler(on_retrieved)
-    -- ap:set_set_reply_handler(on_set_reply)
+    ap:set_location_info_handler(on_location_info)
+    ap:set_location_checked_handler(on_location_checked)
+    ap:set_data_package_changed_handler(on_data_package_changed)
+    ap:set_print_handler(on_print)
+    ap:set_print_json_handler(on_print_json)
+    ap:set_bounced_handler(on_bounced)
+    ap:set_retrieved_handler(on_retrieved)
+    ap:set_set_reply_handler(on_set_reply)
 end
 
 function connectToAp(host, slot, password)
-    ExecuteAsync(function ()
+    ExecuteAsync(function()
         connect(host, slot, "")
+    end)
 
-        PopupQueue = {}
-        --RegisterHook( function(Context)
-        --    Conext.PlayerCharaId = 1
-        --
-        --end)
-        while ap do
-            ap:poll()
-            if #CheckedLocations>0 and #CheckedLocations > #actually_sent_locations then
-                local only_new_ones = {}
-                local i = #actually_sent_locations
-                while i < #CheckedLocations do
-                    table.insert(only_new_ones, CheckedLocations[i+1])
-                    i = i +1
-                end
-                ap:LocationChecks(only_new_ones)
-                for _, APID in ipairs(CheckedLocations) do
-                    checked_locations[APID] = true
-                end
+    LoopAsync(500, function()
+        if ap == nil then return true end
+        ap:poll()
+        -- AddHint("Polling!", 0)
+        if #LocationsToCheck > 0 and #LocationsToCheck > #CheckedLocations then
+            local only_new_ones = {}
+            local i = #CheckedLocations
+            while i < #LocationsToCheck do
+                table.insert(only_new_ones, LocationsToCheck[i+1])
+                i = i + 1
             end
-            -- if IsStartingChapterFinished() == true then
-            --     print("verifying stuff")
-            --     VerifyCharacters()
-            --     VerifyStoryFlags()
-            -- end
-            -- --
-            -- FillScoutedLocations()
-
+            ap:LocationChecks(only_new_ones)
+            for _, APID in ipairs(LocationsToCheck) do
+                CheckedLocations[APID] = true
+            end
         end
-
+        return false
     end)
 end
 
 function disconnect()
-    checked_locations = {}
+    CheckedLocations = {}
     ap = nil
     collectgarbage("collect")
     AddHint("Successfully Disconnected.\nHave a good day!", 1)
 end
 
--- function SendLocation(locationID)
---     if ap == nil then
---         print("AP client not connected, cannot send location")
---         return
---     end
---     print("Sending location ID: "..locationID)
---     ap:LocationChecks({tonumber(locationID)})
--- end
-
 function IsLocationChecked(locationID)
-    if checked_locations==nil then
-        return nil
-    end
-    return checked_locations[locationID] ~= nil
+    return CheckedLocations[locationID] ~= nil
 end
-
-function SendLocationFromName(locationName)
-    local locationID = GetAPLocationIDfromName(locationName)
-    if ap == nil then
-        print("AP client not connected, cannot send location")
-        return
-    end
-
-    if locationID == nil then
-        print("Location name:"..locationName.."Is not valid.")
-        return
-    end
-    print("Sending location name: "..locationName)
-
-    ap:LocationChecks({tonumber(locationID)})
-end
-
 
 function GetAPLocationIDfromName(locationName)
-    return LocationNameToAPId[locationName]
+    if (ap == nil) then return nil end
+    return ap:get_location_id(locationName)
 end
 
 function GetAPNamefromLocationID(locationID)
-    return APLocationIdToName[locationID]
+    if (ap == nil) then return nil end
+    return ap:get_location_name(locationName, nil)
 end
 
-function GetAPItemIDfromName(itemName)
-    return ItemNameToAPId[itemName]
+function GetAPItemIdFromName(itemName)
+    if (ap == nil) then return nil end
+    return ap:get_item_id(itemName)
 end
 
-function GetItemNamefromAPItemID(itemID)
-    return APItemIdToName[itemID]
+function GetAPItemNameFromId(itemId)
+    if (ap == nil) then return nil end
+    return ap:get_item_name(itemId, nil)
 end
 
-function ChestNamefromID(ChestID)
-    return ChestIDToName[ChestID]
-end
-
-function ChestFilenameFromChestID(ChestID)
-    return ChestIDToFilename[ChestID]
-end
-
-function GetAPCheckedLocations()
-    return ap.checked_locations
+function GetAPLocationsToCheck()
+    return ap.CheckedLocations
 end
 
 function GetAPMissingLocations()
@@ -389,239 +245,19 @@ function GetAPMissingLocations()
 end
 
 function ScoutLocations(ScoutLocations)
-    if #ScoutLocations>0 then
-        ap:LocationScouts(ScoutLocations,0)
+    if #ScoutLocations > 0 then
+        ap:LocationScouts(ScoutLocations, 0)
     end
 end
-
-
 
 function FillScoutedLocations()
-    local AllLodadedChests = GetAllChests()
-    local TextDB = GetGameTextDB()
-    if AllLodadedChests==nil or TextDB==nil then
-        return
-    end
 
-    for _, Chest in ipairs(AllLodadedChests) do
-        if ScoutedLocations[Chest.ObjectData.ID] ~= nil and Chest.ObjectData.HaveItemLabel:ToString() ~= "APItem".._ and Chest.IsOpenFlag == false then
-            if Chest.ObjectData.IsMoney == true then
-            ---@diagnostic disable-next-line: inject-field
-                Chest.ObjectData.IsMoney = false
-            end
-            local ScoutedLocationV = ScoutedLocations[Chest.ObjectData.ID]
-            print(ScoutedLocationV["ItemName"].." for "..ScoutedLocationV["PlayerName"])
-
-            Chest.ObjectData.HaveItemLabel = FName("APItem".._)
-            TextDB:FindRow("APItemText".._).Text = FText(ScoutedLocationV["ItemName"].." for "..ScoutedLocationV["PlayerName"])
-
-        end
-    end
-end
-
-function GetIndex()
-    local SaveGame = GetSaveGame()
-    if SaveGame~=nil then
-        print_debug("getting index rawhp")
-        return SaveGame.PlayerMember[35].RawHP
-    end
-    return nil
-end
-
-function SetIndex(newIndex)
-    local SaveGame = GetSaveGame()
-    print("Setting Index: "..newIndex)
-    if SaveGame~=nil then
-        SaveGame.PlayerMember[35].RawHP = newIndex
-    end
-end
-
-function VerifyCharacters()
-    if StartingCharacter==nil then
-        return
-    end
-    --print_debug("calling verifty character")
-    for CharName, CharBool in pairs(Characters) do
-        print("charname "..CharName)
-        local HasCharReturn = HasCharacter(CharName)
-        if HasCharReturn==nil then
-            return
-        end
-        print("has char return is not nil")
-        if CharBool~=HasCharReturn["HasCharacter"] then
-            print("giving character "..CharName)
-            print("HasCharReturn ")
-            print(HasCharReturn["HasCharacter"])
-            if CharBool then
-                GiveCharacter(CharName)
-            else
-                RemoveCharacter(HasCharReturn["PartyType"],HasCharReturn["Index"])
-            end
-        end
-    end
-end
-
-function TitleScreenObjection()
-    local TitleScrrenPlayerSelect = GetTitlePlayerSelect()
-    if TitleScrrenPlayerSelect==nil then
-        print_debug("")
-        return
-    end
-    local SaveGames = GetSaveGames()
-    for _, SaveGame in ipairs(SaveGames) do
-        if SaveGame.FirstSelectCharacterID==0 then
-            print_debug("SaveGame.FirstSelectCharacterID==0 setting PlayerCharaID to be 1")
-            TitleScrrenPlayerSelect.SelectingCharacter = 1
-        end
-    end
-end
-
-function HasCharacter(CharacterName)
-    --print_debug("calling HasCharacter")
-    --print("charactername: " ..CharacterName)
-    local CharacterID = EPlayableCharacterID[CharacterName] - 1
-    local SaveGame = GetSaveGame()
-    if SaveGame==nil then
-        return nil
-    end
-    local PlayerParty = SaveGame.PlayerParty
-    if PlayerParty==nil then
-        print("player party is nil")
-        return nil
-    end
-    --local SubPlayerParty = SaveGame.SubMemberID
-    for i = 1,4 do
-        --print("has character i "..tostring(i))
-        if PlayerParty.MainMemberID[i] == CharacterID then
-            return {["HasCharacter"] = true,["Index"] = i,["PartyType"]="MainMember"}
-        end
-    end
-    for i = 1,8 do
-        --print("has character2 i "..tostring(i))
-        if PlayerParty.SubMemberID[i] == CharacterID then
-            return {["HasCharacter"] = true,["Index"] = i,["PartyType"]="SubMember"}
-        end
-    end
-
-    return {["HasCharacter"] = false}
-end
-
-function VerifyStoryFlags()
-    --print_debug("calling Verify Story Flags")
-    if StartingCharacter==nil then
-        print_debug("StartingCharacter is nil in Verify Story Flags")
-        return
-    end
-    local SaveGame = GetSaveGame()
-    if SaveGame==nil then
-        print_debug("SaveGame is nil in Verify Story Flags")
-        return
-    end
-
-    for ChapterName, StoryInfo in pairs(CharacterChapterToStoryID) do
-        if SaveGame.MainStoryData[StoryInfo["index"]].StoryID ~= StoryInfo["StoryID"] then
-            SaveGame.MainStoryData[StoryInfo["index"]].StoryID = StoryInfo["storyID"]
-            SaveGame.MainStoryData[StoryInfo["index"]].CurrentTaskID = 0
-            SaveGame.MainStoryData[StoryInfo["index"]].State = 7
-            SaveGame.MainStoryData[StoryInfo["index"]].ConfirmedFlag = false
-        end
-
-        if ChapterUnlocks[ChapterName] == true and ChapterName ~= StartingChapter then
-            if SaveGame.MainStoryData[StoryInfo["index"]].StoryID == StoryInfo["storyID"] and SaveGame.MainStoryData[StoryInfo["index"]].State == 7 then
-                SaveGame.MainStoryData[StoryInfo["index"]].StoryID = StoryInfo["storyID"]
-                SaveGame.MainStoryData[StoryInfo["index"]].CurrentTaskID = 0
-                SaveGame.MainStoryData[StoryInfo["index"]].State = 1
-                SaveGame.MainStoryData[StoryInfo["index"]].ConfirmedFlag = false
-            end
-        else --ChapterUnlocks[ChapterName] == false
-            if SaveGame.MainStoryData[StoryInfo["index"]].StoryID == StoryInfo["storyID"] and SaveGame.MainStoryData[StoryInfo["index"]].State ~= 7 then
-                print("removing story flag "..StoryInfo["storyID"])
-                SaveGame.MainStoryData[StoryInfo["index"]].StoryID = StoryInfo["storyID"]
-                SaveGame.MainStoryData[StoryInfo["index"]].CurrentTaskID = 0
-                SaveGame.MainStoryData[StoryInfo["index"]].State = 7
-                SaveGame.MainStoryData[StoryInfo["index"]].ConfirmedFlag = false
-            end
-        end
-    end
-end
-
-function SetInterruptedStoryFlags()
-    if StartingCharacter==nil then
-        return
-    end
-    local SaveGame = GetSaveGame()
-    if SaveGame==nil then
-        return
-    end
-
-
-    for ChapterName, StoryInfo in pairs(CharacterChapterToStoryID) do
-        if ChapterName~=CharacterChapterFNameToAPName[StartingCharacter..1] and SaveGame.MainStoryData[StoryInfo["index"]].StoryID ~= StoryInfo["storyID"] and SaveGame.MainStoryData[StoryInfo["index"]].State ~= 7 then
-            print("setting no story data for "..ChapterName)
-            SaveGame.MainStoryData[StoryInfo["index"]].StoryID = StoryInfo["storyID"]
-            SaveGame.MainStoryData[StoryInfo["index"]].CurrentTaskID = 0
-            SaveGame.MainStoryData[StoryInfo["index"]].State = 7
-            SaveGame.MainStoryData[StoryInfo["index"]].ConfirmedFlag = false
-        end
-    end
-
-end
-
-function SetStartingCharacterIcons()
-    if ChangeStartingCharIcon == false and StartingCharacter~=nil then
-        local CharacterIcons = GetTitlePlayerIcons()
-        if CharacterIcons==nil then
-            if #GetSaveGames()==1 then
-                ChangeStartingCharIcon = true
-            end
-            return
-        end
-        for _, CharacterIcon in ipairs(CharacterIcons) do
-            if CharacterIcon.m_WorldMapDataLabel:ToString() ~= CharNameToMap[StartingCharacter] then
-                CharacterIcon:SetWorldMapData(FName(CharNameToMap[StartingCharacter]))
-            end
-        end
-        ChangeStartingCharIcon = true
-    end
-end
-
-function IsChapterFinshed(index)
-    local SaveGame = GetSaveGame()
-    if SaveGame==nil then
-        return nil
-    end
-    if SaveGame.MainStoryData[index].State == 5 then
-        -- finished first chapter update all story flags and remove/give characters
-        return true
-    end
-        return false
-
-end
-
-function IsStartingChapterFinished()
-    -- on the title screen there are 2 dummy save games while in game there is only 1
-    if FinshsedStartingChapter==false and #GetSaveGames()==1 then
-        local SaveGame = GetSaveGame()
-        if SaveGame==nil then
-            return false
-        end
-
-        if SaveGame.PlayerMember[35].RawMP == 1 then
-            return true
-        end
-
-        if SaveGame.MainStoryData[1].StoryID % 100 == 0 and SaveGame.MainStoryData[1].State == 5 then
-            FinshsedStartingChapter = true
-            SaveGame.PlayerMember[35].RawMP = 1
-        end
-    end
-    return FinshsedStartingChapter
 end
 
 function SendLocation(location_name)
-    returnal = locations[location_name]
-    if returnal ~= nil then
-        print(tostring(returnal))
-        add_unique(CheckedLocations, returnal)
+    local id = GetAPLocationIDfromName(location_name)
+    print("Trying to send " .. location_name .. "(" .. id .. ")")
+    if id ~= nil then
+        add_unique(LocationsToCheck, id)
     end
 end
