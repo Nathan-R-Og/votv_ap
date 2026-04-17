@@ -23,35 +23,11 @@ local message_format = AP.RenderFormat.TEXT
 ap = nil
 local LocationsToCheck = {}
 local CheckedLocations = {}
+local LocationsToScout = {}
+local ScoutedLocations = {}
 
 -- Goal = nil
-local item_list = {}
-
-function SendItemsHint()
-    local item_count = #item_list - GetRecievedItems()
-    if item_count > 0 then
-        local item = item_list[GetRecievedItems()+1]
-        local ApItemName = GetAPItemNameFromId(item.item)
-        AddHint("You have " .. tostring(item_count) .. " unclaimed item(s).\nNext item is " .. ApItemName .. "\nPress F9 to claim.", 1)
-    else
-        AddHint("You have recieved all items. Yay!", 3)
-    end
-end
-
-function GetNextItem()
-    local i = GetRecievedItems()
-    if i < #item_list then
-        local item = item_list[i+1]
-        if item.index >= i then
-            local ApItemName = GetAPItemNameFromId(item.item)
-            print(ApItemName)
-            AddHint(ApItemName .. " from " .. ap:get_player_alias(item.player), 0)
-            OnItemReceived(ApItemName)
-            SetRecievedItems(item.index+1)
-            SendItemsHint()
-        end
-    end
-end
+item_list = {}
 
 function connect(server, slot, password)
     function on_socket_connected()
@@ -85,20 +61,25 @@ function connect(server, slot, password)
         print("Items received: " .. #received_items)
         for _, item in ipairs(received_items) do table.insert(item_list, item) end
         print("Total items received: " .. #item_list)
-        SendItemsHint()
+        CheckAutoItem(GetRecievedItems())
     end
 
-    function on_location_info(items)
+    function on_location_info(infos)
         print("Locations scouted:")
-        for _, item in ipairs(items) do
-            if ScoutedLocations[item.location]==nil then
-                print("placing item "..ap:get_item_name(item.item,ap:get_player_game(item.player)).." in location"..item.location)
-                print("apnamelength "..#APNameToChestID)
-                local APLocationName = APLocationIdToName[item.location]
-                if APLocationName == nil then
+        for _, info in ipairs(infos) do
+            if ScoutedLocations[info.location] == nil then
+                local item = ap:get_item_name(info.item, ap:get_player_game(info.player))
+                local location = GetAPNamefromLocationID(info.location)
+                print("scouted item " .. item .. " in location " .. location)
+                if location == nil then
                     print("we sajdklajskl")
+                else
+                    local player = ap:get_player_alias(info.player)
+                    ScoutedLocations[location] = { ["item"] = item, ["player"] = player }
+                    if array_contains(LocationsToCheck, info.location) then
+                        ShowAchievementPopup(1, item .. " for " .. player, 1, 1)
+                    end
                 end
-                ScoutedLocations[chestID] = {["ItemName"] = ap:get_item_name(item.item,ap:get_player_game(item.player)), ["PlayerName"] = ap:get_player_alias(item.player)}
             end
         end
     end
@@ -185,7 +166,7 @@ function connectToAp(host, slot, password)
         connect(host, slot, "")
     end)
 
-    LoopAsync(500, function()
+    LoopAsync(200, function()
         if ap == nil then return true end
         ap:poll()
         -- AddHint("Polling!", 0)
@@ -223,7 +204,7 @@ end
 
 function GetAPNamefromLocationID(locationID)
     if (ap == nil) then return nil end
-    return ap:get_location_name(locationName, nil)
+    return ap:get_location_name(locationID, nil)
 end
 
 function GetAPItemIdFromName(itemName)
@@ -244,20 +225,22 @@ function GetAPMissingLocations()
     return ap.missing_locations
 end
 
-function ScoutLocations(ScoutLocations)
-    if #ScoutLocations > 0 then
-        ap:LocationScouts(ScoutLocations, 0)
+function ScoutLocations(location_name)
+    if LocationsToScout[location_name] == nil then
+        ap:LocationScouts({ location_name }, 0)
     end
-end
-
-function FillScoutedLocations()
-
 end
 
 function SendLocation(location_name)
     local id = GetAPLocationIDfromName(location_name)
-    print("Trying to send " .. location_name .. "(" .. id .. ")")
-    if id ~= nil then
-        add_unique(LocationsToCheck, id)
+    print("Trying to send " .. location_name .. "(" .. tostring(id) .. ")")
+    if id == nil then return false end
+    add_unique(LocationsToCheck, id)
+    local scoutInfo = ScoutedLocations[id]
+    if scoutInfo then
+        ShowAchievementPopup(1, scoutInfo.item .. " for " .. scoutInfo.player, 1, 1)
+    else
+        ap:LocationScouts({id}, false)
     end
+    return true
 end

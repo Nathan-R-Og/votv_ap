@@ -1,3 +1,26 @@
+auto_map = {
+    ["Progressive Processing Level"] =      { hint = 0, run = function() Upgrade("processLvl") end },
+    ["Progressive Processing Speed"] =      { hint = 0, run = function() Upgrade("processSpeed") end },
+    ["Progressive Download Speed"] =        { hint = 0, run = function() Upgrade("downloadSpd") end },
+    ["Progressive Cursor Drift"] =          { hint = 0, run = function() Upgrade("coordDrift") end },
+    ["Progressive Cursor Speed"] =          { hint = 0, run = function() Upgrade("coordMovementSpeed") end },
+    ["Progressive Ping Speed"] =            { hint = 0, run = function() Upgrade("coordPingSpeed") end },
+    ["Progressive Ping Cooldown"] =         { hint = 0, run = function() Upgrade("coordCooldown") end },
+    ["Progressive Coordinate Speed"] =      { hint = 0, run = function() Upgrade("coordRadarSpeed") end },
+    ["Progressive Radar History"] =         { hint = 0, run = function() Upgrade("radarHist") end },
+    ["Progressive Radar Speed"] =           { hint = 0, run = function() Upgrade("radar") end },
+    ["Progressive Breaker Time"] =          { hint = 0, run = function() Upgrade("compTime") end },
+    ["Progressive Detector Quality"] =      { hint = 0, run = function() Upgrade("detecQual") end },
+    ["Progressive Detector Strength"] =     { hint = 0, run = function() Upgrade("scanner") end },
+    ["Progressive Detector Frequency"] =    { hint = 0, run = function() Upgrade("scannerFr") end },
+    -- Unused
+    ["Progressive Filter Size"] =           { hint = 0, run = function() Upgrade("downloadFiltSize") end },
+    ["Progressive Server Stability"] =      { hint = 0, run = function() Upgrade("serverStability") end },
+    ["Progressive Transformer Stability"] = { hint = 0, run = function() Upgrade("transformer") end },
+
+    ["Drunk Trap"] =                        { hint = 2, run = function() end }
+}
+
 item_map = {
     ["drive"] = "Drive",
     ["box_p"] = "Drive box",
@@ -325,4 +348,7 @@ item_map = {
     ["smokedetec"] = "Smoke detector box",
     ["kerfoout_maid"] = "Maid outfit",
     ["bandage"] = "Bandage",
-    }
+    ["432t"] = "Tile",
+    ["shovel"] = "Shovel",
+    ["shrimp"] = "Shrimp pack"
+}

@@ -45,19 +45,53 @@ function SetRecievedItems(val)
     return false
 end
 
-function OnItemReceived(item_name)
-    local invert = table_invert(item_map)
-    local internal_name = invert[item_name]
-    if internal_name ~= nil then
-        print("can give player " .. item_name)
-        GiveItem(internal_name)
-    else
-        print("cant give player " .. item_name)
+-- TODO: Find better name
+function CheckAutoItem(i)
+    if i < #item_list then
+        local next_item = item_list[i+1]
+        local item_name = GetAPItemNameFromId(next_item.item)
         if item_name == "Day" then
+            AddHint("You got a new day!", 3)
             have_days = have_days + 1
-            AddHint("You got a new day!", 1)
-        else
-            AddHint("Item unsupported. :)", 2)
+            return CheckAutoItem(i+1)
+        end
+        local auto_item = auto_map[item_name]
+        if auto_item ~= nil then
+            AddHint(item_name .. " from " .. ap:get_player_alias(item.player), auto_item.hint)
+            auto_item.run()
+            return CheckAutoItem(i+1)
+        end
+    end
+    SetRecievedItems(i)
+    SendItemsHint()
+end
+
+function SendItemsHint()
+    local item_count = #item_list - GetRecievedItems()
+    if item_count > 0 then
+        local item = item_list[GetRecievedItems()+1]
+        local item_name = GetAPItemNameFromId(item.item)
+        AddHint("You have " .. tostring(item_count) .. " unclaimed item(s).\nNext item is " .. item_name .. "\nPress F9 to claim.", 1)
+    else
+        AddHint("You have recieved all items. Yay!", 3)
+    end
+end
+
+function GetNextItem()
+    local i = GetRecievedItems()
+    if i < #item_list then
+        local item = item_list[i+1]
+        if item.index >= i then
+            local item_name = GetAPItemNameFromId(item.item)
+            AddHint(item_name .. " from " .. ap:get_player_alias(item.player), 0)
+            local invert = table_invert(item_map)
+            local internal_name = invert[item_name]
+            if internal_name ~= nil then
+                GiveItem(internal_name)
+            else
+                AddHint("Item unsupported. :)", 2)
+            end
+            CheckAutoItem(i+1)
         end
     end
 end
@@ -71,10 +105,8 @@ end)
 function OnTouchProp(prop)
     local key = prop:get().Key:ToString()
     local location = locationKeys[key]
-    if (location) then
-        prop:get():K2_DestroyActor()
-        ShowAchievementPopup(1, location, 1, 1)
-        SendLocation(location)
+    if location and SendLocation(location) then
+        -- prop:get():K2_DestroyActor()
     end
 end
 
@@ -87,6 +119,11 @@ function RegisterAllHooks()
     end)
     RegisterUniqueHook("/Game/objects/prop.prop_C:playerTryToCollect", function(self, player, collected)
         OnTouchProp(self)
+    end)
+    RegisterUniqueHook("/Game/objects/prop.prop_C:lookAt", function(self, Player, HitResult, lookAtComponent)
+        local key = self:get().Key:ToString()
+        local location = locationKeys[key]
+        -- ScoutLocation(location)
     end)
 
     RegisterUniqueHook("/Game/objects/droneSellLocation.droneSellLocation_C:sell", function(self, Points, responseEmail, checked, soldAmountSig, sellList)
@@ -159,7 +196,7 @@ function RegisterAllHooks()
         end)
     end)
 
-    --Day Looping
+    -- Day Looping
     -- RegisterUniqueHook("/Game/objects/misc/daynightCycle.daynightCycle_C:ReceiveTick", function(self, DeltaSeconds)
     --     local GameplayStatics = UEHelpers:GetGameplayStatics()
     --     local GameMode = GameplayStatics:GetGameMode(UEHelpers:GetWorld())
