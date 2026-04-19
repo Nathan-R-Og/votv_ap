@@ -1,13 +1,29 @@
 locationKeys = {
-    ["TicyQbH6Ay4OuIicBFV4vg"] = "Blue Argemia Plush",
     ["-kCJT1DEsvkcPPOA8MaAkA"] = "Red Argemia Plush",
+    ["TicyQbH6Ay4OuIicBFV4vg"] = "Blue Argemia Plush",
     ["Cjsf-gKRnEcSvUzaryeGAQ"] = "Green Argemia Plush",
 
     ["UK3WDv9SER3RICHHhSjcVw"] = "Ventilation Unit Sandwich",
     ["Yk5ywVQJylnraITkXRavAw"] = "Basement Stairs Sandwich",
     ["Fssy2fw_pVZJT9AAAT762w"] = "Abandoned Shack Sandwich",
     ["A4Cd_GpurH4UIrcn_fux7A"] = "Stonehenge Sandwich",
-    ["sUu6KGMQHyBBYas-5MTfzA"] = "Radio Tower Pole Sandwich"
+    ["sUu6KGMQHyBBYas-5MTfzA"] = "Radio Tower Pole Sandwich",
+    ["0JvEG1LrlK_JLRl9hcJDhQ"] = "Toilet Sandwich",
+    ["T1P9Ugi2aoY2ChDrSFfsVA"] = "Oven Sandwich",
+    ["gw3M6ymIULvmEbqyoERA_g"] = "Alpha Server Sandwich",
+    ["WFqF3_M--Grl8I3o9GhtrQ"] = "Garage Sandwich",
+    ["-3oFvEGnxOystPKo5_KpcQ"] = "Sensor Sandwich",
+    ["HDZ8Wl5oOG2L686OxK2GsA"] = "River Sandwich",
+    ["rr8ev1YThaCqcZoSgKr7Cw"] = "TR2 Sandwich",
+    ["wLPERlBsmvrMdVGokAVN7Q"] = "Lake Log Sandwich",
+    ["ihZeNFX1OHRjoAEFNdxygg"] = "Juliett Sandwich",
+    ["wNbz7cDzg8rFVFS7ALJJ6g"] = "Whiskey Sandwich",
+    ["AxQjo8xDObq_BWEzwfzJVA"] = "Rozital Capsule Sandwich",
+    ["1jX1ivoN3cilJZD8YCkb0A"] = "New Trees Sandwich",
+    ["h8wx0DoYXl-SSGisoXEmCw"] = "Hole Sandwich",
+    ["jUUnzaigTvaY0f5ZUUYBcA"] = "Cave Entrance Sandwich",
+    ["LdcVGn_kKW0Wske-ZTiYXA"] = "Cave Sandwich",
+    ["8PlzsKuYYsYI5JcgTleyrw"] = "Buried Sandwich",
 
     ["szdjIdH4EI53gEbFgozcFQ"] = "Alpha Tile",
     ["l3vFeFqy4hbgQBoLZr6tag"] = "CR3 Tile",
@@ -23,8 +39,8 @@ locationKeys = {
     ["z36auTahauMovYKZUpobeg"] = "Stonehenge Skull",
     ["0D0UJl7cn5E9IW2SN3620w"] = "Gravel Circle Skull",
     ["XhMXkMqfQuKcE2odD4zJ5Q"] = "Radioactive Capsule Skull",
-    ["XY48X55WfgiZzC8GsJXm4A"] = "Cave Skull",
-    ["A3MY_r9QjL5k8D8o3KUPMQ"] = "Buried Skull",
+    ["XY48X55WfgiZzC8GsJXm4A"] = "Cave Entrance Skull",
+    ["A3MY_r9QjL5k8D8o3KUPMQ"] = "Buried Box Skull",
     ["zIeF6stogF2KJptQJzEUWg"] = "Rozital Capsule Skull",
     
     ["xKQfSSbsNniDXoPmfuDmPw"] = "TR2 Shovel",
@@ -33,6 +49,7 @@ locationKeys = {
     ["6PXvi0rI0CULFm_iQHGyaA"] = "Stonehenge Shovel",
 
     ["vefN250Ai8DT9DGNbWRkpQ"] = "Toolbox",
-    ["fvLctw9CJXdBkND4efyP-A"] = "Axe"
+    ["fvLctw9CJXdBkND4efyP-A"] = "Axe",
+    ["Eey3Mlt98-8M9DKIh_cTaA"] = "Pickaxe",
     ["fqKcbPHy9M7NoGRLMhk6RQ"] = "Deer Skull"
 }
