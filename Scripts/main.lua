@@ -104,7 +104,8 @@ end)
 
 function OnTouchProp(prop)
     local key = prop:get().Key:ToString()
-    local location = locationKeys[key]
+    local name = prop:get().Name:ToString()
+    local location = locationKeys[key] or locationKeys[name]
     if location and SendLocation(location) then
         -- prop:get():K2_DestroyActor()
     end
