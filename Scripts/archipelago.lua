@@ -40,6 +40,7 @@ function connect(server, slot, password)
 
     function on_socket_disconnected()
         AddHint("Socket disconnected", 2)
+        item_list = {}
     end
 
     function on_room_info()
@@ -50,7 +51,8 @@ function connect(server, slot, password)
     function on_slot_connected(slot_data)
         AddHint("Slot connected", 0)
         ap:ConnectUpdate(nil, {"Lua-APClientPP"})
-        -- Goal = slot_data["Goal"]
+        print("Locations checked: " .. table.concat(ap.checked_locations, ", "))
+        print("Goal: " .. slot_data["goal"])
     end
 
     function on_slot_refused(reasons)
@@ -85,11 +87,11 @@ function connect(server, slot, password)
     end
 
     function on_location_checked(locations)
-        print("calling location checked")
         print("Locations checked:" .. table.concat(locations, ", "))
         print("Checked locations: " .. table.concat(ap.checked_locations, ", "))
         for _, LocationID in ipairs(locations) do
             CheckedLocations[LocationID] = true
+           table.insert(LocationsToCheck, LocationID)
         end
     end
 
@@ -140,7 +142,6 @@ function connect(server, slot, password)
         end
     end
 
-
     local uuid = ""
     ap = AP(uuid, game_name, server)
     AddHint("Connecting to " .. server .. " ...", 1)
@@ -167,21 +168,25 @@ function connectToAp(host, slot, password)
     end)
 
     LoopAsync(200, function()
-        if ap == nil then return true end
-        ap:poll()
-        -- AddHint("Polling!", 0)
-        if #LocationsToCheck > 0 and #LocationsToCheck > #CheckedLocations then
-            local only_new_ones = {}
-            local i = #CheckedLocations
-            while i < #LocationsToCheck do
-                table.insert(only_new_ones, LocationsToCheck[i+1])
-                i = i + 1
+        if ap == nil then return false end
+        xpcall(function()
+            ap:poll()
+            -- AddHint("Polling!", 0)
+            if #LocationsToCheck > 0 and #LocationsToCheck > #CheckedLocations then
+                local only_new_ones = {}
+                local i = #CheckedLocations
+                while i < #LocationsToCheck do
+                    table.insert(only_new_ones, LocationsToCheck[i+1])
+                    i = i + 1
+                end
+                ap:LocationChecks(only_new_ones)
+                for _, APID in ipairs(LocationsToCheck) do
+                    CheckedLocations[APID] = true
+                end
             end
-            ap:LocationChecks(only_new_ones)
-            for _, APID in ipairs(LocationsToCheck) do
-                CheckedLocations[APID] = true
-            end
-        end
+        end, function()
+            ap:disconnect()
+        end)
         return false
     end)
 end
@@ -217,15 +222,7 @@ function GetAPItemNameFromId(itemId)
     return ap:get_item_name(itemId, nil)
 end
 
-function GetAPLocationsToCheck()
-    return ap.CheckedLocations
-end
-
-function GetAPMissingLocations()
-    return ap.missing_locations
-end
-
-function ScoutLocations(location_name)
+function ScoutLocation(location_name)
     if LocationsToScout[location_name] == nil then
         ap:LocationScouts({ location_name }, 0)
     end
@@ -233,14 +230,29 @@ end
 
 function SendLocation(location_name)
     local id = GetAPLocationIDfromName(location_name)
+    return SendLocationId(id)
+end
+
+function SendNextLocation(radical)
+    local id
+    local current = 1
+    repeat
+        id = GetAPLocationIDfromName(radical .. " " .. current)
+        if id == nil then return false end
+        current = current + 1
+    until not array_contains(LocationChecks, id)
+    return SendLocationId(id)
+end
+
+function SendLocationId(id)
+    if id == nil or array_contains(LocationsToCheck, id) then return false end
     print("Trying to send " .. location_name .. "(" .. tostring(id) .. ")")
-    if id == nil then return false end
     add_unique(LocationsToCheck, id)
     local scoutInfo = ScoutedLocations[id]
     if scoutInfo then
         ShowAchievementPopup(1, scoutInfo.item .. " for " .. scoutInfo.player, 1, 1)
     else
-        ap:LocationScouts({id}, false)
+        ScoutLocation(id)
     end
     return true
 end

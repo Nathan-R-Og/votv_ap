@@ -1,3 +1,39 @@
+local GameplayStatics = nil
+function GetGameplayStatics()
+    if GameplayStatics == nil or not GameplayStatics:IsValid() then GameplayStatics = UEHelpers:GetGameplayStatics() end
+    return GameplayStatics
+end
+
+local World = nil
+function GetWorld()
+    if World == nil or not World:IsValid() then World = UEHelpers:GetWorld() end
+    return World
+end
+
+local GameMode = nil
+function GetGameMode()
+    if GameMode == nil or not GameMode:IsValid() then GameMode = GetGameplayStatics():GetGameMode(GetWorld()) end
+    return GameMode
+end
+
+local Pawn = nil
+function GetPawn()
+    if Pawn == nil or not Pawn:IsValid() then
+        local FirstPlayerController = UEHelpers:GetPlayerController()
+        Pawn = FirstPlayerController.Pawn
+    end
+    return Pawn
+end
+
+local DNC = nil
+function GetDNC()
+    if DNC == nil or not DNC:IsValid() then
+        local dnc = StaticFindObject("/Game/objects/misc/daynightCycle.daynightCycle_C")
+        DNC = FindObject(dnc, GetWorld(), "daynightCycle", true)
+    end
+    return DNC
+end
+
 -- function SpawnSomething()
 --     --TODO: make this an argument probably
 --     --local the = "/Game/objects/prop_food_potatoCooked.prop_food_potatoCooked_C"
@@ -13,7 +49,7 @@
 --     local Class = StaticFindObject(the)
 --     if Class:IsValid() then
 --         print(Class:GetFullName())
---         local World = UEHelpers:GetWorld()
+--         local World = GetWorld()
 --         local FirstPlayerController = UEHelpers:GetPlayerController()
 --         local Pawn = FirstPlayerController.Pawn
 --         local Location = Pawn:K2_GetActorLocation()
@@ -26,7 +62,7 @@
 
 -- function SendViaDrone()
 --     local drone_class = StaticFindObject("/Game/objects/drone.drone_C")
---     local drone = FindObject(drone_class, UEHelpers:GetWorld(), "drone", true)
+--     local drone = FindObject(drone_class, GetWorld(), "drone", true)
 --     local laptop = FindFirstOf("ui_laptop_C")
 
 --     local class = StaticFindObject('/Script/Engine.UserDefinedStruct')
@@ -104,7 +140,7 @@
 
 -- function SendViaDroneReal()
 --     local drone_class = StaticFindObject("/Game/objects/drone.drone_C")
---     local drone = FindObject(drone_class, UEHelpers:GetWorld(), "drone", true)
+--     local drone = FindObject(drone_class, GetWorld(), "drone", true)
 
 --     local laptop = FindFirstOf("ui_laptop_C")
 
@@ -120,102 +156,69 @@
 --     end
 -- end
 
-function MessWithSaveGame()
-    local GameplayStatics = UEHelpers:GetGameplayStatics()
-    local GameMode = GameplayStatics:GetGameMode(UEHelpers:GetWorld())
-
-    if GameMode:IsValid() then
-        GameMode.Immortal = true
-        -- You now have the USaveGame object
-        local SaveGameObject = GameMode.saveSlot
-        if SaveGameObject:IsValid() then
-            SaveGameObject.Points = 2
-            SaveGameObject.food = 100.0
-            SaveGameObject.sleep = 100.0
-            GameMode.AddPoints(0)
-        else
-            print("Failed to load save game")
-        end
-    else
-        print("Failed to load save game")
-    end
-end
-
 --MakePlayerLookAt({["X"] = 0.0,["Y"] = 0.0,["Z"] = 0.0})
 function MakePlayerLookAt(look_here)
-    local FirstPlayerController = UEHelpers:GetPlayerController()
-    local Pawn = FirstPlayerController.Pawn
+    local Pawn = GetPawn()
     local Location = Pawn:K2_GetActorLocation()
     Pawn.makeLookAt(look_here,Location)
 end
 
 function MakePlayerDropItem()
-    local FirstPlayerController = UEHelpers:GetPlayerController()
-    local Pawn = FirstPlayerController.Pawn
+    local Pawn = GetPawn()
     Pawn.forceDrop()
 end
 
 function MakePlayerEatShit(dmg)
-    local FirstPlayerController = UEHelpers:GetPlayerController()
-    local Pawn = FirstPlayerController.Pawn
+    local Pawn = GetPawn()
     Pawn.ateShit(dmg)
 end
 
 function MakePlayerEatPiss(heal)
-    local FirstPlayerController = UEHelpers:GetPlayerController()
-    local Pawn = FirstPlayerController.Pawn
+    local Pawn = GetPawn()
     Pawn.heal(heal)
 end
 
 function MakePlayerPassOut()
-    local FirstPlayerController = UEHelpers:GetPlayerController()
-    local Pawn = FirstPlayerController.Pawn
+    local Pawn = GetPawn()
     Pawn.wakeup(true)
 end
 
 --??? only really makes you reset camera
 function MakePlayerWakeUp()
-    local FirstPlayerController = UEHelpers:GetPlayerController()
-    local Pawn = FirstPlayerController.Pawn
+    local Pawn = GetPawn()
     Pawn.forceWakeup()
 end
 
 --the funnier alternative to deathlink
 function MakePlayerInexplicablyDie()
-    local FirstPlayerController = UEHelpers:GetPlayerController()
-    local Pawn = FirstPlayerController.Pawn
+    local Pawn = GetPawn()
     Pawn.fallen(true)
 end
 
 function MakePlayerBurn(duration)
-    local FirstPlayerController = UEHelpers:GetPlayerController()
-    local Pawn = FirstPlayerController.Pawn
+    local Pawn = GetPawn()
     Pawn.ignite(duration)
 end
 
 --trap? can be escaped by ragdolling
 function MakePlayerStop()
-    local FirstPlayerController = UEHelpers:GetPlayerController()
-    local Pawn = FirstPlayerController.Pawn
+    local Pawn = GetPawn()
     Pawn.ladderOn()
 end
 
 --trap
 function MakePlayerPause()
-    local FirstPlayerController = UEHelpers:GetPlayerController()
-    local Pawn = FirstPlayerController.Pawn
+    local Pawn = GetPawn()
     Pawn.simulateEsc()
 end
 
 function MakePlayerWalk()
-    local FirstPlayerController = UEHelpers:GetPlayerController()
-    local Pawn = FirstPlayerController.Pawn
+    local Pawn = GetPawn()
     Pawn.unrun()
 end
 
 function MakePlayerLoseInput()
-    local FirstPlayerController = UEHelpers:GetPlayerController()
-    local Pawn = FirstPlayerController.Pawn
+    local Pawn = GetPawn()
     Pawn.input_forward = false
     Pawn.input_back = false
     Pawn.input_right = false
@@ -229,42 +232,36 @@ end
 --can be a trap or a buff :)
 function MakePlayerChangeArm(length)
     length = length or 100 -- ~100 is the default
-    local FirstPlayerController = UEHelpers:GetPlayerController()
-    local Pawn = FirstPlayerController.Pawn
+    local Pawn = GetPawn()
     Pawn.armLength = length
 end
 
 function MakePlayerChangeSensitivity(speed)
     speed = speed or 1 -- 1 is the default
-    local FirstPlayerController = UEHelpers:GetPlayerController()
-    local Pawn = FirstPlayerController.Pawn
+    local Pawn = GetPawn()
     Pawn.mouseSens = speed
 end
 
 function MakePlayerStrong(boolean)
     boolean = boolean or false -- false is the default
-    local FirstPlayerController = UEHelpers:GetPlayerController()
-    local Pawn = FirstPlayerController.Pawn
+    local Pawn = GetPawn()
     Pawn.hulkMode = boolean
 end
 
 function MakePlayerFlingItem()
-    local FirstPlayerController = UEHelpers:GetPlayerController()
-    local Pawn = FirstPlayerController.Pawn
+    local Pawn = GetPawn()
     Pawn.grabLen = 10000.0
     Pawn.grab_speed = 0.0001
 end
 
 function MakePlayerMirrorMouse()
-    local FirstPlayerController = UEHelpers:GetPlayerController()
-    local Pawn = FirstPlayerController.Pawn
+    local Pawn = GetPawn()
     Pawn.isMirror = true
 end
 
 --??? makes it so you cant put up the item you are holding
 function MakePlayerUnableToStash()
-    local GameplayStatics = UEHelpers:GetGameplayStatics()
-    local GameMode = GameplayStatics:GetGameMode(UEHelpers:GetWorld())
+    local GameMode = GetGameMode()
     if GameMode:IsValid() then
         GameMode.fuckYOuItem()
     end
@@ -273,7 +270,7 @@ end
 --trap ; make player reset radio tower
 function MakePlayerLoseRadioTower()
     local dnc = StaticFindObject("/Game/objects/radiotower.radiotower_C")
-    local danc = FindObject(dnc, UEHelpers:GetWorld(), "radiotower", true)
+    local danc = FindObject(dnc, GetWorld(), "radiotower", true)
 
     if danc:IsValid() then
         danc.breakdown()
@@ -292,8 +289,7 @@ function MakePlayerLoseTransformers()
 end
 
 function SwapToLevel(Levelname)
-    local GameplayStatics = UEHelpers:GetGameplayStatics()
-    GameplayStatics:OpenLevel(UEHelpers:GetWorld(), FName(Levelname), false, "")
+    GetGameplayStatics():OpenLevel(GetWorld(), FName(Levelname), false, "")
 end
 
 function AddEmail(title, text)
@@ -324,8 +320,7 @@ function AddEmail(title, text)
 end
 
 function AddHint(text, type)
-    local GameplayStatics = UEHelpers:GetGameplayStatics()
-    local GameMode = GameplayStatics:GetGameMode(UEHelpers:GetWorld())
+    local GameMode = GetGameMode()
     if GameMode:IsValid() then
         --0 == i
         --1 == warning
@@ -338,14 +333,12 @@ function AddHint(text, type)
 end
 
 function GiveItem(itemname)
-    local FirstPlayerController = UEHelpers:GetPlayerController()
-    local Pawn = FirstPlayerController.Pawn
+    local Pawn = GetPawn()
     Pawn.addPropToPlayer(Pawn, FName(itemname))
 end
 
 function ShowAchievementPopup(type, name, progressTarget, target)
-    local GameplayStatics = UEHelpers:GetGameplayStatics()
-    local GameMode = GameplayStatics:GetGameMode(UEHelpers:GetWorld())
+    local GameMode = GetGameMode()
     if GameMode:IsValid() then
         local data = {
             ["name_4_0534A17545E554F4B68649B89423EB76"] = FName(name),
@@ -386,8 +379,7 @@ function Upgrade(name)
     local fullNames = upgradeFullNames[name]
     if not fullNames then return false end
 
-    local GameplayStatics = UEHelpers:GetGameplayStatics()
-    local GameMode = GameplayStatics:GetGameMode(UEHelpers:GetWorld())
+    local GameMode = GetGameMode()
     if not GameMode:IsValid() then return false end
 
     local SaveGameObject = GameMode.saveSlot

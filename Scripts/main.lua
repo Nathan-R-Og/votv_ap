@@ -13,9 +13,34 @@ local have_days = 0
 --last achieved day
 local latest_day = 0
 
+--currently active task
+local task_active = false
+
+function GetTaskData()
+    local GameMode = GetGameMode()
+    if GameMode:IsValid() then
+        --GameMode.Immortal = true
+        -- You now have the USaveGame object
+        local SaveGameObject = GameMode.saveSlot
+        if SaveGameObject:IsValid() then
+            return {
+                ["daysCompleted"] = SaveGameObject.Task.points_7_6DD8FF16419714EB5D548B976F625F36,
+                ["dailyTasksDone"] = SaveGameObject.Task.fails_51_26566E3641B156F3F6AB08B9355882ED,
+                ["level0SignalsSold"] = SaveGameObject.Task.level_0_16_88D206694129CF344988FCBE97D2746D,
+                ["level1SignalsSold"] = SaveGameObject.Task.level_1_17_DA0C9B2A415A9C3965B9CE94924FA2BF,
+                ["level2SignalsSold"] = SaveGameObject.Task.level_2_18_DA69C40F460C07F8F36EA9903A8616A4,
+                ["level3SignalsSold"] = SaveGameObject.Task.level_3_19_025F3E1E4D5816711A15A88F08F7C298,
+                ["tashBagsSold"] = SaveGameObject.Task.pr_level_0_22_6F755B9B4A891014FDCFD9A21465EE40,
+                ["serversRepaired"] = SaveGameObject.Task.pr_level_1_24_AFAD2026496CAE54AF64C7836EAE0406,
+                ["fusesReplaced"] = SaveGameObject.Task.pr_level_2_26_1D0983874395EE83333203B43085BCCF,
+                ["transformersRepaired"] = SaveGameObject.Task.pr_level_3_28_704A7A03492B930F8A1E4EA2959996CB,
+            }
+        end
+    end
+end
+
 function GetRecievedItems()
-    local GameplayStatics = UEHelpers:GetGameplayStatics()
-    local GameMode = GameplayStatics:GetGameMode(UEHelpers:GetWorld())
+    local GameMode = GetGameMode()
     if GameMode:IsValid() then
         --GameMode.Immortal = true
         -- You now have the USaveGame object
@@ -29,8 +54,7 @@ function GetRecievedItems()
 end
 
 function SetRecievedItems(val)
-    local GameplayStatics = UEHelpers:GetGameplayStatics()
-    local GameMode = GameplayStatics:GetGameMode(UEHelpers:GetWorld())
+    local GameMode = GetGameMode()
     if GameMode:IsValid() then
         --GameMode.Immortal = true
         -- You now have the USaveGame object
@@ -57,7 +81,7 @@ function CheckAutoItem(i)
         end
         local auto_item = auto_map[item_name]
         if auto_item ~= nil then
-            AddHint(item_name .. " from " .. ap:get_player_alias(item.player), auto_item.hint)
+            AddHint(item_name .. " from " .. ap:get_player_alias(next_item.player), auto_item.hint)
             auto_item.run()
             return CheckAutoItem(i+1)
         end
@@ -111,6 +135,21 @@ function OnTouchProp(prop)
     end
 end
 
+function CheckDailyTask()
+    local GameMode = GetGameMode()
+    if GameMode:IsValid() then
+        local SaveGameObject = GameMode.saveSlot
+        if SaveGameObject:IsValid() then
+            local new_active = SaveGameObject.taskNew.active_15_4D2EB6A44AAAE79770E875BDC11E595B
+            if task_active and not new_active then
+                SendNextLocation("Daily Task Done")
+            end
+            print("DAILY TASK ACTIVE IS NOW " .. tostring(new_active))
+            task_active = new_active
+        end
+    end
+end
+
 function RegisterAllHooks()
     RegisterUniqueHook("/Game/objects/prop.prop_C:playerTryToGrab", function(self, player, collected)
         OnTouchProp(self)
@@ -131,23 +170,8 @@ function RegisterAllHooks()
     end)
 
     RegisterUniqueHook("/Game/objects/droneSellLocation.droneSellLocation_C:sell", function(self, Points, responseEmail, checked, soldAmountSig, sellList)
-        --0 == worst?
-        --6 == best?
-        local email_response = responseEmail[0]
-        print(tostring(email_response))
-        AddHint("Email response " .. tostring(email_response), 0)
-        if email_response == 6 then
-            local GameplayStatics = UEHelpers:GetGameplayStatics()
-            local GameMode = GameplayStatics:GetGameMode(UEHelpers:GetWorld())
-            local SaveGameObject = nil
-
-            if GameMode:IsValid() then
-                SaveGameObject = GameMode.saveSlot
-                if SaveGameObject:IsValid() then
-                    SendLocation("Day " .. tostring(SaveGameObject.savedTime.Z) .. " Report")
-                end
-            end
-        end
+        AddHint("Sold: " .. sellList:get():ToString(), 0)
+        CheckDailyTask()
     end)
 
     RegisterUniqueHook("/Game/objects/drone.drone_C:sendShop", function(self, order)
@@ -201,56 +225,49 @@ function RegisterAllHooks()
     end)
 
     -- Day Looping
-    -- RegisterUniqueHook("/Game/objects/misc/daynightCycle.daynightCycle_C:ReceiveTick", function(self, DeltaSeconds)
-    --     local GameplayStatics = UEHelpers:GetGameplayStatics()
-    --     local GameMode = GameplayStatics:GetGameMode(UEHelpers:GetWorld())
-    --     local SaveGameObject = nil
+    RegisterUniqueHook("/Game/objects/misc/daynightCycle.daynightCycle_C:ReceiveTick", function(self, DeltaSeconds)
+        local GameMode = GetGameMode()
+        local SaveGameObject = nil
 
-    --     if GameMode:IsValid() then
-    --         --GameMode.Immortal = true
-    --         -- You now have the USaveGame object
-    --         SaveGameObject = GameMode.saveSlot
-    --         if SaveGameObject:IsValid() then
-    --             --SaveGameObject.Points = 2
-    --             --GameMode.AddPoints(0)
-    --             --SaveGameObject.food = 100.0
-    --             --SaveGameObject.sleep = 100.0
-    --             --SaveGameObject.maxDay = 2
-    --             --SaveGameObject.Day = 100
-    --         end
-    --     end
+        if GameMode:IsValid() then
+            SaveGameObject = GameMode.saveSlot
+        end
 
-    --     local dnc = StaticFindObject("/Game/objects/misc/daynightCycle.daynightCycle_C")
-    --     local danc = FindObject(dnc, UEHelpers:GetWorld(), "daynightCycle", true)
+        local danc = GetDNC()
+        if danc:IsValid() and SaveGameObject ~= nil then
+            --safe zone of time before next day
+            if danc.Day >= danc.MaxTime - 5 then
+                --check if has next day
+                if SaveGameObject.savedTime.Z + 1 > have_days then
+                    AddHint('You do not have the next day! Looping..', 2)
+                    danc.Day = danc.Day - 1
+                end
+            end
 
-    --     if danc:IsValid() and SaveGameObject ~= nil then
-    --         --safe zone of time before next day
-    --         if danc.Day >= danc.MaxTime - 5 then
-    --             --check if has next day
-    --             if SaveGameObject.savedTime.Z + 1 > have_days then
-    --                 AddHint('You do not have the next day! Looping..', 2)
-    --                 danc.Day = 0
-    --             end
-    --         end
+            --do survived checks
+            if SaveGameObject.savedTime.Z > latest_day then
+                latest_day = SaveGameObject.savedTime.Z
+                SendLocation("Survived Day " .. tostring(latest_day))
+            end
+        end
+    end)
 
-    --         --do survived checks
-    --         if SaveGameObject.savedTime.Z > latest_day then
-    --             latest_day = SaveGameObject.savedTime.Z
-    --             SendLocation("Survived Day " .. tostring(latest_day))
-    --         end
-    --     end
-    -- end)
+    CheckDailyTask()
 end
 
 RegisterKeyBind(Key.F8, function()
     ExecuteInGameThread(function()
         RegisterAllHooks()
+        -- GetTaskData()
     end)
 end)
 
 RegisterHook("/Script/Engine.PlayerController:ClientRestart", function(self, NewPawn)
     NotifyOnNewObject("/Game/main/mainPlayer.mainPlayer_C", function(self)
         SetRecievedItems(0)
+    end)
+
+    RegisterUniqueHook("/Game/main/mainGamemode.mainGamemode_C:Load Primitives", function(self, in_canLoad, in_isSubData, in_loadingSubLevel)
         RegisterAllHooks()
     end)
 end)
@@ -261,9 +278,7 @@ RegisterConsoleCommandHandler("daymax", function(FullCommand, Parameters)
         return false
     end
 
-    local dnc = StaticFindObject("/Game/objects/misc/daynightCycle.daynightCycle_C")
-    local danc = FindObject(dnc, UEHelpers:GetWorld(), "daynightCycle", true)
-
+    local danc = GetDNC()
     if danc:IsValid() then
         danc.MaxTime = tonumber(Parameters[1])
     end
@@ -278,7 +293,7 @@ RegisterConsoleCommandHandler("host_timescale", function(FullCommand, Parameters
     end
 
     local dnc = StaticFindObject("/Game/objects/misc/daynightCycle.daynightCycle_C")
-    local danc = FindObject(dnc, UEHelpers:GetWorld(), "daynightCycle", true)
+    local danc = FindObject(dnc, GetWorld(), "daynightCycle", true)
 
     if danc:IsValid() then
         danc.TimeScale = tonumber(Parameters[1])
