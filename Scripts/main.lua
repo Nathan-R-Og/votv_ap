@@ -136,17 +136,14 @@ function OnTouchProp(prop)
 end
 
 function CheckDailyTask()
-    local GameMode = GetGameMode()
-    if GameMode:IsValid() then
-        local SaveGameObject = GameMode.saveSlot
-        if SaveGameObject:IsValid() then
-            local new_active = SaveGameObject.taskNew.active_15_4D2EB6A44AAAE79770E875BDC11E595B
-            if task_active and not new_active then
-                SendNextLocation("Daily Task Done")
-            end
-            print("DAILY TASK ACTIVE IS NOW " .. tostring(new_active))
-            task_active = new_active
+    local SaveGameObject = GetSaveSlot()
+    if SaveGameObject ~= nil then
+        local new_active = SaveGameObject.taskNew.active_15_4D2EB6A44AAAE79770E875BDC11E595B
+        if task_active and not new_active then
+            SendNextLocation("Daily Task Done")
         end
+        print("DAILY TASK ACTIVE IS NOW " .. tostring(new_active))
+        task_active = new_active
     end
 end
 
@@ -169,8 +166,40 @@ function RegisterAllHooks()
         -- ScoutLocation(location)
     end)
 
+    local detected = false
+    RegisterUniqueHook("/Game/objects/drone.drone_C:triggerFly", function(self, console)
+        print("Drone has begun flight")
+
+        local SaveSlot = GetSaveSlot()
+        local soldTrashBags = 0
+        if SaveSlot ~= nil then
+            local container_index = self:get().container.propInventory.Index
+            local container_data = SaveSlot.GObjStack[container_index + 1].obj_11_89CC26B14C79E8F107FE6E9010A5AFC9
+            container_data:ForEach(function(_, item)
+                local classname = item:get().class_3_5267A5ED44C89294283B8CBBEC685F8A:GetFName():ToString()
+                if classname == "prop_box_C" then
+                    item:get().signals_45_CE5AB8DE4026B6660BF9A28FA6690AD5:ForEach(function(_, signal)
+                        if #signal:get().name_15_4DC53B564EDE34E0A8A16A92BD26B4AD:ToString() > 0 then
+                            local level = signal:get().level_8_986E7CB3437BFD9FC9F6DF824C794EA8
+                            for i=0,level do
+                                SendNextLocation("Sell Level " .. i .. " Signal")
+                            end
+                        end
+                    end)
+                end
+
+                if classname == "prop_garbageBag_C" then
+                    soldTrashBags = soldTrashBags + 1
+                end
+            end)
+
+            for i=1,math.floor(soldTrashBags / 10) do
+                SendNextLocation("Sell 10 Full Trash Bags")
+            end
+        end
+    end)
     RegisterUniqueHook("/Game/objects/droneSellLocation.droneSellLocation_C:sell", function(self, Points, responseEmail, checked, soldAmountSig, sellList)
-        AddHint("Sold: " .. sellList:get():ToString(), 0)
+        print("Sold: " .. sellList:get():ToString())
         CheckDailyTask()
     end)
 

@@ -229,11 +229,13 @@ function ScoutLocation(location_name)
 end
 
 function SendLocation(location_name)
+    print("Looking for " .. location_name)
     local id = GetAPLocationIDfromName(location_name)
     return SendLocationId(id)
 end
 
 function SendNextLocation(radical)
+    print("Looking for next " .. radical)
     local id
     local current = 1
     repeat

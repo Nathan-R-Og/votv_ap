@@ -16,6 +16,20 @@ function GetGameMode()
     return GameMode
 end
 
+function GetSaveSlot()
+    local GameMode = GetGameMode()
+    if GameMode:IsValid() then
+        local slot = GameMode.saveSlot
+        if slot:IsValid() then
+            return slot
+        else
+            return nil
+        end
+    else
+        return nil
+    end
+end
+
 local Pawn = nil
 function GetPawn()
     if Pawn == nil or not Pawn:IsValid() then
