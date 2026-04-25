@@ -16,6 +16,10 @@ local latest_day = 0
 --currently active task
 local task_active = false
 
+--active fuse count
+local fuses = {}
+local fuse_debt = {}
+
 function GetTaskData()
     local GameMode = GetGameMode()
     if GameMode:IsValid() then
@@ -147,6 +151,25 @@ function CheckDailyTask()
     end
 end
 
+function CheckFuseHealth(index, obj)
+    if not obj:IsValid() then return 0 end
+    local base = fuses[index] or 0
+    fuses[index] = 0
+    obj.fuses:ForEach(function(i, e) 
+        if e:get() == 1 then fuses[index] = fuses[index] + 1 end
+    end)
+    print(obj:GetFName():ToString() .. " health: " .. fuses[index])
+    local increase = fuses[index] - base
+    fuse_debt[index] = fuse_debt[index] and fuse_debt[index] + increase or increase
+    if fuse_debt[index] > 0 then
+        increase = fuse_debt[index]
+        fuse_debt[index] = 0
+        return increase
+    else
+        return 0
+    end
+end
+
 function RegisterAllHooks()
     RegisterUniqueHook("/Game/objects/prop.prop_C:playerTryToGrab", function(self, player, collected)
         OnTouchProp(self)
@@ -163,7 +186,15 @@ function RegisterAllHooks()
     RegisterUniqueHook("/Game/objects/prop.prop_C:lookAt", function(self, Player, HitResult, lookAtComponent)
         local key = self:get().Key:ToString()
         local location = locationKeys[key]
-        -- ScoutLocation(location)
+        ScoutLocation(location)
+    end)
+    RegisterUniqueHook("/Game/objects/prop.prop_C:GetName", function(self, DisplayName, propname)
+        local key = self:get().Key:ToString()
+        local location = locationKeys[key]
+        local scout = ScoutedLocations[location]
+        if scout ~= nil then
+            DisplayName:set(FText(scout.item))
+        end
     end)
 
     local detected = false
@@ -201,6 +232,30 @@ function RegisterAllHooks()
     RegisterUniqueHook("/Game/objects/droneSellLocation.droneSellLocation_C:sell", function(self, Points, responseEmail, checked, soldAmountSig, sellList)
         print("Sold: " .. sellList:get():ToString())
         CheckDailyTask()
+    end)
+
+    RegisterUniqueHook("/Game/objects/serverBox.serverBox_C:fix", function(self)
+        SendNextLocation("Repair Server")
+    end)
+    RegisterUniqueHook("/Game/objects/misc/coordRadarDish.coordRadarDish_C:updFuses", function(self)
+        for i=1,CheckFuseHealth(self:get().ID, self:get()) do
+            SendNextLocation("Replace Fuse")
+        end
+    end)
+    RegisterUniqueHook("/Game/objects/radiotower.radiotower_C:updFuses", function(self)
+        for i=1,CheckFuseHealth(3, self:get()) do
+            SendNextLocation("Replace Fuse")
+        end
+    end)
+
+    local generatorCycles = {}
+    RegisterUniqueHook("/Game/objects/generator.generator_C:player_use", function(self)
+        local index = self:get().Index
+        local cycle = self:get().cycle
+        if generatorCycles[index] ~= nil and generatorCycles[index] < 90 and cycle == 100 then
+            SendNextLocation("Repair Transformer")
+        end
+        generatorCycles[index] = cycle
     end)
 
     RegisterUniqueHook("/Game/objects/drone.drone_C:sendShop", function(self, order)
@@ -282,6 +337,13 @@ function RegisterAllHooks()
     end)
 
     CheckDailyTask()
+    local static_radio = StaticFindObject("/Game/objects/radiotower.radiotower_C")
+    local radiotower = FindObject(static_radio, GetWorld(), "radiotower", true)
+    CheckFuseHealth(3, radiotower)
+    local coordRadars = FindAllOf("coordRadarDish_C")
+    for _, radar in ipairs(coordRadars or {}) do
+        CheckFuseHealth(radar.ID, radar)
+    end
 end
 
 RegisterKeyBind(Key.F8, function()

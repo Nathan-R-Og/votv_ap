@@ -24,7 +24,7 @@ ap = nil
 local LocationsToCheck = {}
 local CheckedLocations = {}
 local LocationsToScout = {}
-local ScoutedLocations = {}
+ScoutedLocations = {}
 
 -- Goal = nil
 item_list = {}
@@ -91,7 +91,7 @@ function connect(server, slot, password)
         print("Checked locations: " .. table.concat(ap.checked_locations, ", "))
         for _, LocationID in ipairs(locations) do
             CheckedLocations[LocationID] = true
-           table.insert(LocationsToCheck, LocationID)
+            table.insert(LocationsToCheck, LocationID)
         end
     end
 
@@ -223,8 +223,10 @@ function GetAPItemNameFromId(itemId)
 end
 
 function ScoutLocation(location_name)
+    if (ap == nil) then return end
     if LocationsToScout[location_name] == nil then
         ap:LocationScouts({ location_name }, 0)
+        LocationsToScout[location_name] = true
     end
 end
 
