@@ -367,6 +367,7 @@ end)
 
 RegisterKeyBind(Key.F7, function()
     ExecuteInGameThread(function()
+        complex_item_map["Kerfur-Omega Complete Manual"]()
         FillItemMap()
     end)
 end)

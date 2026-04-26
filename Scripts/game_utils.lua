@@ -48,31 +48,20 @@ function GetDNC()
     return DNC
 end
 
--- function SpawnSomething()
---     --TODO: make this an argument probably
---     --local the = "/Game/objects/prop_food_potatoCooked.prop_food_potatoCooked_C"
---     local the = "/Game/objects/misc/radiotowerPoof.radiotowerPoof_C"
---     LoadAsset(the)
-
---     --Old method. not really good :)
---     --local FirstPlayerController = UEHelpers:GetPlayerController()
---     --local CM = FirstPlayerController.CheatManager
---     --CM:Summon(the)
-
---     --spawn class at player
---     local Class = StaticFindObject(the)
---     if Class:IsValid() then
---         print(Class:GetFullName())
---         local World = GetWorld()
---         local FirstPlayerController = UEHelpers:GetPlayerController()
---         local Pawn = FirstPlayerController.Pawn
---         local Location = Pawn:K2_GetActorLocation()
---         local Rotation = Pawn:K2_GetActorRotation()
---         local SpawnedActor = World:SpawnActor(Class, Location, Rotation)
---         return SpawnedActor
---     end
---     return nil
--- end
+function SpawnSomething(name)
+    local Class = StaticFindObject(name)
+    if Class:IsValid() then
+        print(Class:GetFullName())
+        local World = GetWorld()
+        local FirstPlayerController = UEHelpers:GetPlayerController()
+        local Pawn = FirstPlayerController.Pawn
+        local Location = Pawn:K2_GetActorLocation()
+        local Rotation = Pawn:K2_GetActorRotation()
+        local SpawnedActor = World:SpawnActor(Class, Location, Rotation)
+        return SpawnedActor
+    end
+    return CreateInvalidObject()
+end
 
 -- function SendViaDrone()
 --     local drone_class = StaticFindObject("/Game/objects/drone.drone_C")

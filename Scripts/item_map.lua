@@ -61,16 +61,10 @@ complex_item_map = {
         end
     end,
     ["Kerfur-Omega Complete Manual"] = function()
-        local class = StaticFindObject("/Game/objects/prop_blueprint_kerfurOmega.prop_blueprint_kerfurOmega_C")
         local Pawn = GetPawn()
-        if class:IsValid() and Pawn:IsValid() then
-            local transform = { ["Translation"] = Pawn:K2_GetActorLocation(), ["Scale3D"] = { ["X"] = 1.0, ["Y"] = 1.0, ["Z"] = 1.0 } }
-            local blueprint = GetGameplayStatics():BeginSpawningActorFromClass(GetWorld(), class, transform, true, nil)
-            if blueprint:IsValid() then
-                print("Init")
-                GetGameplayStatics():FinishSpawningActor(blueprint, transform)
-                Pawn:putObjectInventory2(blueprint, false, {})
-            end
+        local blueprint = SpawnSomething("/Game/objects/prop_blueprint_kerfurOmega.prop_blueprint_kerfurOmega_C")
+        if Pawn:IsValid() and blueprint:IsValid() then
+            Pawn:putObjectInventory2(blueprint, false, {})
         end
     end,
 }
