@@ -21,6 +21,14 @@ function table_invert(t)
     return s
 end
 
+function lowercase_keys(t)
+    local s={}
+    for k,v in pairs(t) do
+      s[string.lower(k)]=v
+    end
+    return s
+end
+
 function extract_keys(original_table)
     local keys_only_table = {}
     for k, v in pairs(original_table) do -- Iterate over all key-value pairs

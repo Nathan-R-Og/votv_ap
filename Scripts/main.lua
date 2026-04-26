@@ -20,6 +20,10 @@ local task_active = false
 local fuses = {}
 local fuse_debt = {}
 
+DELETE_LOCATION_ITEMS = true
+IGNORE_INVALID_ITEMS = false
+REQUIRE_DAY_ITEMS = false
+
 function GetTaskData()
     local GameMode = GetGameMode()
     if GameMode:IsValid() then
@@ -112,12 +116,18 @@ function GetNextItem()
         if item.index >= i then
             local item_name = GetAPItemNameFromId(item.item)
             AddHint(item_name .. " from " .. ap:get_player_alias(item.player), 0)
-            local invert = table_invert(item_map)
-            local internal_name = invert[item_name]
-            if internal_name ~= nil then
-                GiveItem(internal_name)
+            local complex_item = complex_item_map[item_name]
+            if complex_item then
+                complex_item()
             else
-                AddHint("Item unsupported. :)", 2)
+                local invert = lowercase_keys(table_invert(item_map))
+                local internal_name = invert[string.lower(item_name)]
+                if internal_name ~= nil then
+                    GiveItem(internal_name)
+                else
+                    AddHint("Item unsupported. :)", 2)
+                    if not IGNORE_INVALID_ITEMS then return end
+                end
             end
             CheckAutoItem(i+1)
         end
@@ -134,8 +144,8 @@ function OnTouchProp(prop)
     local key = prop:get().Key:ToString()
     local name = prop:get().Name:ToString()
     local location = locationKeys[key] or locationKeys[name]
-    if location and SendLocation(location) then
-        -- prop:get():K2_DestroyActor()
+    if location and SendLocation(location) and DELETE_LOCATION_ITEMS then
+        prop:get():K2_DestroyActor()
     end
 end
 
@@ -183,17 +193,18 @@ function RegisterAllHooks()
     RegisterUniqueHook("/Game/objects/prop.prop_C:player_use", function(self, player, collected)
         OnTouchProp(self)
     end)
-    RegisterUniqueHook("/Game/objects/prop.prop_C:lookAt", function(self, Player, HitResult, lookAtComponent)
-        local key = self:get().Key:ToString()
-        local location = locationKeys[key]
-        ScoutLocation(location)
-    end)
     RegisterUniqueHook("/Game/objects/prop.prop_C:GetName", function(self, DisplayName, propname)
+        print(self:get():GetClass():GetFullName())
+        print(self:get():GetOuter():GetFullName())
         local key = self:get().Key:ToString()
         local location = locationKeys[key]
-        local scout = ScoutedLocations[location]
-        if scout ~= nil then
-            DisplayName:set(FText(scout.item))
+        if location then
+            local scout = ScoutedLocations[GetAPLocationIDfromName(location)]
+            if scout ~= nil then
+                DisplayName:set(FText("[AP] " .. scout.item))
+            else
+                ScoutLocationByName(location)
+            end
         end
     end)
 
@@ -320,7 +331,7 @@ function RegisterAllHooks()
         local danc = GetDNC()
         if danc:IsValid() and SaveGameObject ~= nil then
             --safe zone of time before next day
-            if danc.Day >= danc.MaxTime - 5 then
+            if danc.Day >= danc.MaxTime - 5 and REQUIRE_DAY_ITEMS then
                 --check if has next day
                 if SaveGameObject.savedTime.Z + 1 > have_days then
                     AddHint('You do not have the next day! Looping..', 2)
@@ -344,12 +355,19 @@ function RegisterAllHooks()
     for _, radar in ipairs(coordRadars or {}) do
         CheckFuseHealth(radar.ID, radar)
     end
+    FillItemMap()
 end
 
 RegisterKeyBind(Key.F8, function()
     ExecuteInGameThread(function()
         RegisterAllHooks()
         -- GetTaskData()
+    end)
+end)
+
+RegisterKeyBind(Key.F7, function()
+    ExecuteInGameThread(function()
+        FillItemMap()
     end)
 end)
 

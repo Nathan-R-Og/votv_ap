@@ -77,7 +77,7 @@ function connect(server, slot, password)
                     print("we sajdklajskl")
                 else
                     local player = ap:get_player_alias(info.player)
-                    ScoutedLocations[location] = { ["item"] = item, ["player"] = player }
+                    ScoutedLocations[info.location] = { ["item"] = item, ["player"] = player }
                     if array_contains(LocationsToCheck, info.location) then
                         ShowAchievementPopup(1, item .. " for " .. player, 1, 1)
                     end
@@ -222,11 +222,18 @@ function GetAPItemNameFromId(itemId)
     return ap:get_item_name(itemId, nil)
 end
 
-function ScoutLocation(location_name)
-    if (ap == nil) then return end
-    if LocationsToScout[location_name] == nil then
-        ap:LocationScouts({ location_name }, 0)
-        LocationsToScout[location_name] = true
+function ScoutLocationByName(location_name)
+    if ap == nil then return end
+    local id = GetAPLocationIDfromName(location_name)
+    if id ~= nil and id >= 0 then ScoutLocation(id) end
+end
+
+function ScoutLocation(id)
+    if ap == nil then return end
+    if LocationsToScout[id] == nil then
+        print("Scouting location " .. tostring(id))
+        ap:LocationScouts({ id }, 0)
+        LocationsToScout[id] = true
     end
 end
 
@@ -242,18 +249,18 @@ function SendNextLocation(radical)
     local current = 1
     repeat
         id = GetAPLocationIDfromName(radical .. " " .. current)
-        if id == nil then return false end
+        if id == nil or id < 0 then return false end
         current = current + 1
-    until not array_contains(LocationChecks, id)
+    until not array_contains(LocationsToCheck, id)
     return SendLocationId(id)
 end
 
 function SendLocationId(id)
-    if id == nil or array_contains(LocationsToCheck, id) then return false end
-    print("Trying to send " .. location_name .. "(" .. tostring(id) .. ")")
+    if id == nil or id < 0 or array_contains(LocationsToCheck, id) then return false end
+    print("Trying to send location " .. tostring(id))
     add_unique(LocationsToCheck, id)
     local scoutInfo = ScoutedLocations[id]
-    if scoutInfo then
+    if scoutInfo ~= nil then
         ShowAchievementPopup(1, scoutInfo.item .. " for " .. scoutInfo.player, 1, 1)
     else
         ScoutLocation(id)
