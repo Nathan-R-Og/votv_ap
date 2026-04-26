@@ -2,9 +2,9 @@ print("[MyLuaMod] Mod loaded\n")
 
 UEHelpers = require("UEHelpers")
 
-require("archipelago")
 require("utils")
 require("game_utils")
+require("archipelago")
 require("item_map")
 
 --ap day items
@@ -83,7 +83,7 @@ function CheckAutoItem(i)
         local next_item = item_list[i+1]
         local item_name = GetAPItemNameFromId(next_item.item)
         if item_name == "Day" then
-            AddHint("You got a new day!", 3)
+            AddHint("You got a new day!", HintType.Thought)
             have_days = have_days + 1
             return CheckAutoItem(i+1)
         end
@@ -103,9 +103,9 @@ function SendItemsHint()
     if item_count > 0 then
         local item = item_list[GetRecievedItems()+1]
         local item_name = GetAPItemNameFromId(item.item)
-        AddHint("You have " .. tostring(item_count) .. " unclaimed item(s).\nNext item is " .. item_name .. "\nPress F9 to claim.", 1)
+        AddHint("You have " .. tostring(item_count) .. " unclaimed item(s).\nNext item is " .. item_name .. "\nPress F9 to claim.", HintType.Warning)
     else
-        AddHint("You have recieved all items. Yay!", 3)
+        AddHint("You have recieved all items. Yay!", HintType.Thought)
     end
 end
 
@@ -115,7 +115,7 @@ function GetNextItem()
         local item = item_list[i+1]
         if item.index >= i then
             local item_name = GetAPItemNameFromId(item.item)
-            AddHint(item_name .. " from " .. ap:get_player_alias(item.player), 0)
+            AddHint(item_name .. " from " .. ap:get_player_alias(item.player), HintType.Info)
             local complex_item = complex_item_map[item_name]
             if complex_item then
                 complex_item()
@@ -125,7 +125,7 @@ function GetNextItem()
                 if internal_name ~= nil then
                     GiveItem(internal_name)
                 else
-                    AddHint("Item unsupported. :)", 2)
+                    AddHint("Item unsupported. :)", HintType.Error)
                     if not IGNORE_INVALID_ITEMS then return end
                 end
             end
@@ -334,7 +334,7 @@ function RegisterAllHooks()
             if danc.Day >= danc.MaxTime - 5 and REQUIRE_DAY_ITEMS then
                 --check if has next day
                 if SaveGameObject.savedTime.Z + 1 > have_days then
-                    AddHint('You do not have the next day! Looping..', 2)
+                    AddHint('You do not have the next day! Looping..', HintType.Warning)
                     danc.Day = danc.Day - 1
                 end
             end

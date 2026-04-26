@@ -295,25 +295,26 @@ function SwapToLevel(Levelname)
     GetGameplayStatics():OpenLevel(GetWorld(), FName(Levelname), false, "")
 end
 
-function AddEmail(title, text)
+EmailUsername = {
+    ["Bao"] = 0,
+    ["Lea"] = 1
+    ["Auto"] = 2
+    ["Max"] = 3
+    ["Ken"] = 4
+    ["Ena"] = 5
+    ["Ula"] = 6
+    ["Ler"] = 7
+    ["user"] = 8
+    ["Noa"] = 9
+    ["blank"] = 10
+}
+function AddEmail(title, text, username)
     local laptop = FindFirstOf("ui_laptop_C")
     if laptop:IsValid() then
-        --0 == Dr_Bao
-        --1 == Dr_Lea
-        --2 == Auto
-        --3 == Dr_Max
-        --4 == Dr_Ken
-        --5 == Dr_Ena
-        --6 == Dr_Ula
-        --7 == Dr_Ler
-        --8 == user
-        --9 == Dr_Noa
-        --10 == enum_MAX
-        --else == blank
         local the_email = {
             ["new_14_5FB7784E4E60A05C8BC13ABD93D6EFDF"] = true,
             ["pfp_2_286B75414BAC856FBED047B8BE9F0065"] = nil,
-            ["username_18_778252D64AB06BB5D3FBC386EC59383F"] = 2,
+            ["username_18_778252D64AB06BB5D3FBC386EC59383F"] = username,
             ["date_8_932438DD4158A22517E43E8DAD3BBC45"] = nil,
             ["topic_17_91E2F92C4DC4FF16CFAF539A3561F74B"] = FText(title),
             ["text_11_B74A8FDC40C1F46E42A9F382C0EFA6FF"] = FText(text),
@@ -322,16 +323,17 @@ function AddEmail(title, text)
     end
 end
 
+HintType = {
+    ["Info"] = 0,
+    ["Warning"] = 1,
+    ["Error"] = 2,
+    ["Thought"] = 3,
+    ["Empty"] = 4
+}
 function AddHint(text, type)
     local GameMode = GetGameMode()
     if GameMode:IsValid() then
-        --0 == i
-        --1 == warning
-        --2 == x
-        --3 == thought bubble
-        --else == null
-        --doesnt specify anywhere it takes itself as an arg? okay
-        GameMode.addHint(GameMode, FText(text), type)
+        GameMode:addHint(FText(text), type)
     end
 end
 

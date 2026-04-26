@@ -31,32 +31,32 @@ item_list = {}
 
 function connect(server, slot, password)
     function on_socket_connected()
-        AddHint("Socket connected", 0)
+        AddHint("Socket connected", HintType.Info)
     end
 
     function on_socket_error(msg)
-        AddHint("Socket error: " .. msg, 2)
+        AddHint("Socket error: " .. msg, HintType.Error)
     end
 
     function on_socket_disconnected()
-        AddHint("Socket disconnected", 2)
+        AddHint("Socket disconnected", HintType.Error)
         item_list = {}
     end
 
     function on_room_info()
-        AddHint("Room info", 0)
+        AddHint("Room info", HintType.Info)
         ap:ConnectSlot(slot, password, items_handling, {"Lua-APClientPP"}, client_version)
     end
 
     function on_slot_connected(slot_data)
-        AddHint("Slot connected", 0)
+        AddHint("Slot connected", HintType.Info)
         ap:ConnectUpdate(nil, {"Lua-APClientPP"})
         print("Locations checked: " .. table.concat(ap.checked_locations, ", "))
         print("Goal: " .. slot_data["goal"])
     end
 
     function on_slot_refused(reasons)
-        AddHint("Slot refused: " .. table.concat(reasons, ", "), 2)
+        AddHint("Slot refused: " .. table.concat(reasons, ", "), HintType.Error)
     end
 
     function on_items_received(received_items)
@@ -101,7 +101,7 @@ function connect(server, slot, password)
     end
 
     function on_print(msg)
-        AddHint(msg, 3)
+        AddHint(msg, HintType.Thought)
     end
 
     function on_print_json(msg, extra)
@@ -144,7 +144,7 @@ function connect(server, slot, password)
 
     local uuid = ""
     ap = AP(uuid, game_name, server)
-    AddHint("Connecting to " .. server .. " ...", 1)
+    AddHint("Connecting to " .. server .. " ...", HintType.Warning)
     ap:set_socket_connected_handler(on_socket_connected)
     ap:set_socket_error_handler(on_socket_error)
     ap:set_socket_disconnected_handler(on_socket_disconnected)
@@ -171,7 +171,7 @@ function connectToAp(host, slot, password)
         if ap == nil then return false end
         xpcall(function()
             ap:poll()
-            -- AddHint("Polling!", 0)
+            -- AddHint("Polling!", HintType.Info)
             if #LocationsToCheck > 0 and #LocationsToCheck > #CheckedLocations then
                 local only_new_ones = {}
                 local i = #CheckedLocations
@@ -195,7 +195,7 @@ function disconnect()
     CheckedLocations = {}
     ap = nil
     collectgarbage("collect")
-    AddHint("Successfully Disconnected.\nHave a good day!", 1)
+    AddHint("Successfully Disconnected.\nHave a good day!", HintType.Warning)
 end
 
 function IsLocationChecked(locationID)

@@ -1,25 +1,25 @@
 auto_map = {
-    ["Progressive Processing Level"] =      { hint = 0, run = function() Upgrade("processLvl") end },
-    ["Progressive Processing Speed"] =      { hint = 0, run = function() Upgrade("processSpeed") end },
-    ["Progressive Download Speed"] =        { hint = 0, run = function() Upgrade("downloadSpd") end },
-    ["Progressive Cursor Drift"] =          { hint = 0, run = function() Upgrade("coordDrift") end },
-    ["Progressive Cursor Speed"] =          { hint = 0, run = function() Upgrade("coordMovementSpeed") end },
-    ["Progressive Ping Speed"] =            { hint = 0, run = function() Upgrade("coordPingSpeed") end },
-    ["Progressive Ping Cooldown"] =         { hint = 0, run = function() Upgrade("coordCooldown") end },
-    ["Progressive Coordinate Speed"] =      { hint = 0, run = function() Upgrade("coordRadarSpeed") end },
-    ["Progressive Radar History"] =         { hint = 0, run = function() Upgrade("radarHist") end },
-    ["Progressive Radar Speed"] =           { hint = 0, run = function() Upgrade("radar") end },
-    ["Progressive Breaker Time"] =          { hint = 0, run = function() Upgrade("compTime") end },
-    ["Progressive Detector Quality"] =      { hint = 0, run = function() Upgrade("detecQual") end },
-    ["Progressive Detector Strength"] =     { hint = 0, run = function() Upgrade("scanner") end },
-    ["Progressive Detector Frequency"] =    { hint = 0, run = function() Upgrade("scannerFr") end },
+    ["Progressive Processing Level"] =      { hint = HintType.Info, run = function() Upgrade("processLvl") end },
+    ["Progressive Processing Speed"] =      { hint = HintType.Info, run = function() Upgrade("processSpeed") end },
+    ["Progressive Download Speed"] =        { hint = HintType.Info, run = function() Upgrade("downloadSpd") end },
+    ["Progressive Cursor Drift"] =          { hint = HintType.Info, run = function() Upgrade("coordDrift") end },
+    ["Progressive Cursor Speed"] =          { hint = HintType.Info, run = function() Upgrade("coordMovementSpeed") end },
+    ["Progressive Ping Speed"] =            { hint = HintType.Info, run = function() Upgrade("coordPingSpeed") end },
+    ["Progressive Ping Cooldown"] =         { hint = HintType.Info, run = function() Upgrade("coordCooldown") end },
+    ["Progressive Coordinate Speed"] =      { hint = HintType.Info, run = function() Upgrade("coordRadarSpeed") end },
+    ["Progressive Radar History"] =         { hint = HintType.Info, run = function() Upgrade("radarHist") end },
+    ["Progressive Radar Speed"] =           { hint = HintType.Info, run = function() Upgrade("radar") end },
+    ["Progressive Breaker Time"] =          { hint = HintType.Info, run = function() Upgrade("compTime") end },
+    ["Progressive Detector Quality"] =      { hint = HintType.Info, run = function() Upgrade("detecQual") end },
+    ["Progressive Detector Strength"] =     { hint = HintType.Info, run = function() Upgrade("scanner") end },
+    ["Progressive Detector Frequency"] =    { hint = HintType.Info, run = function() Upgrade("scannerFr") end },
     -- Unused
-    ["Progressive Filter Size"] =           { hint = 0, run = function() Upgrade("downloadFiltSize") end },
-    ["Progressive Server Stability"] =      { hint = 0, run = function() Upgrade("serverStability") end },
-    ["Progressive Transformer Stability"] = { hint = 0, run = function() Upgrade("transformer") end },
+    ["Progressive Filter Size"] =           { hint = HintType.Info, run = function() Upgrade("downloadFiltSize") end },
+    ["Progressive Server Stability"] =      { hint = HintType.Info, run = function() Upgrade("serverStability") end },
+    ["Progressive Transformer Stability"] = { hint = HintType.Info, run = function() Upgrade("transformer") end },
 
     ["Drunk Trap"] = {
-        hint = 2,
+        hint = HintType.Error,
         run = function()
             
         end
@@ -42,7 +42,7 @@ complex_item_map = {
         elseif i == 2 then
             GiveItem("sleepingbag_st")
         else
-            AddHint(3, "You collected too many sleeping bags!")
+            AddHint("You collected too many sleeping bags!", HintType.Error)
         end
     end,
     ["Bunker Keycard"] = function()

@@ -1,4 +1,5 @@
--- Unique items are registered using their name, as this is way moer future proof
+-- Unique items are registered using their name, as this is way more future proof
+-- Some items also are generated mid run, and so don't have a consistent key
 -- Otherwise, the item uses its key if the map has multiple instances, or if more instances can be easily gotten
 locationKeys = {
     ["grock"]                  = "Green Fire Rock",
@@ -17,6 +18,9 @@ locationKeys = {
     ["argemia_9"]              = "Yellow Argemia Plush",
     ["argemia_10"]             = "Cyan Argemia Plush",
     ["argemia_11"]             = "Magenta Argemia Plush",
+    [""]                       = "Nuclear Yellow Argemia Plush",
+    [""]                       = "Nuclear Cyan Argemia Plush",
+    [""]                       = "Nuclear Magenta Argemia Plush",
 
     ["abplush"]                = "Antibreather Plush",
     ["eriePlush"]              = "Erie Plush",
@@ -35,7 +39,7 @@ locationKeys = {
     ["T1P9Ugi2aoY2ChDrSFfsVA"] = "Oven Sandwich",
     ["gw3M6ymIULvmEbqyoERA_g"] = "Alpha Server Sandwich",
     ["WFqF3_M--Grl8I3o9GhtrQ"] = "Garage Roof Sandwich",
-    ["-3oFvEGnxOystPKo5_KpcQ"] = "Radrar Dome Sandwich",
+    ["-3oFvEGnxOystPKo5_KpcQ"] = "Radar Dome Sandwich",
     ["HDZ8Wl5oOG2L686OxK2GsA"] = "River Sandwich",
     ["rr8ev1YThaCqcZoSgKr7Cw"] = "TR2 Sandwich",
     ["wLPERlBsmvrMdVGokAVN7Q"] = "Lake Log Sandwich",
@@ -138,7 +142,7 @@ locationKeys = {
     ["pickaxe"]                = "Pickaxe",
     ["argemug"]                = "Argemia Mug",
     ["leadpipe"]               = "Lead Pipe",
-    
+
     ["slab_0"]                 = "Fire Tablet",
     ["slab_1"]                 = "Air Tablet",
     ["slab_2"]                 = "Water Tablet",
