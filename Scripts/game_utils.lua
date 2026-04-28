@@ -51,7 +51,6 @@ end
 function SpawnSomething(name)
     local Class = StaticFindObject(name)
     if Class:IsValid() then
-        print(Class:GetFullName())
         local World = GetWorld()
         local FirstPlayerController = UEHelpers:GetPlayerController()
         local Pawn = FirstPlayerController.Pawn
@@ -297,15 +296,15 @@ end
 
 EmailUsername = {
     ["Bao"] = 0,
-    ["Lea"] = 1
-    ["Auto"] = 2
-    ["Max"] = 3
-    ["Ken"] = 4
-    ["Ena"] = 5
-    ["Ula"] = 6
-    ["Ler"] = 7
-    ["user"] = 8
-    ["Noa"] = 9
+    ["Lea"] = 1,
+    ["Auto"] = 2,
+    ["Max"] = 3,
+    ["Ken"] = 4,
+    ["Ena"] = 5,
+    ["Ula"] = 6,
+    ["Ler"] = 7,
+    ["user"] = 8,
+    ["Noa"] = 9,
     ["blank"] = 10
 }
 function AddEmail(title, text, username)
@@ -337,9 +336,21 @@ function AddHint(text, type)
     end
 end
 
-function GiveItem(itemname)
+function GiveItem(itemname, transform)
+    local GameMode = GetGameMode()
     local Pawn = GetPawn()
-    Pawn.addPropToPlayer(Pawn, FName(itemname))
+    if GameMode:IsValid() and Pawn:IsValid() then
+        local out = {}
+        GameMode:spawnPropThroughGamemode(
+            FName(itemname),
+            { ["Translation"] = Pawn:K2_GetActorLocation(), ["Scale3D"] = { ["X"] = 1.0, ["Y"] = 1.0, ["Z"] = 1.0 } },
+            1,
+            out
+        )
+        out["actor "].Key = FName("APItem")
+        if transform ~= nil then transform(out["actor "]) end
+        Pawn:putObjectInventory2(out["actor "], false, {})
+    end
 end
 
 function ShowAchievementPopup(type, name, progressTarget, target)

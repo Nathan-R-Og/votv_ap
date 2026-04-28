@@ -193,6 +193,7 @@ end
 
 function disconnect()
     CheckedLocations = {}
+    item_list = {}
     ap = nil
     collectgarbage("collect")
     AddHint("Successfully Disconnected.\nHave a good day!", HintType.Warning)

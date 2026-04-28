@@ -44,3 +44,7 @@ function RegisterUniqueHook(hook, func)
         RegisterHook(hook, func)
     end
 end
+
+function string.startswith(str, match)
+   return string.sub(str, 1, string.len(match)) == match
+end

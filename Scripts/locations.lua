@@ -86,7 +86,7 @@ locationKeys = {
 
     ["hqwZJysFdR5lOHl_PvebNQ"] = "Bunker Keycard",
     ["1RjLKd_Ds_wEtfgYLQLzxQ"] = "Kerfur-Omega Complete Manual",
-    ["kerfuro_book"]           = "Kerfur-Omega Documents Binder",
+    ["kerfurobook"]            = "Kerfur-Omega Documents Binder",
     ["kerfsp_0"]               = "Omega AI Module",
     ["fvWpNMvPGSlk3qKxoeh7fA"] = "Buried Radioactive Capsule",
 
@@ -104,7 +104,7 @@ locationKeys = {
     ["CJA0hA9rEtxuVnSKKRebGQ"] = "Green Hatch Toolbox",
     ["fqKcbPHy9M7NoGRLMhk6RQ"] = "Deer Skull",
     ["chk-ch-s_g3_PfZhkCSxHA"] = "Medkit",
-    ["G8e-1NODGF6q3qoD7MBJkA"] = "Spectogram Module",
+    ["physmodule_spectrogram"] = "Spectogram Module",
     ["HB0M3EdnEGgYzosohcI7sQ"] = "Car Keys",
     ["NFPjHKeSnM07GnM7W73D4Q"] = "Cooking Book",
     ["JdST4317y-uNFt9EB1k_6Q"] = "Miniature Gas Can",

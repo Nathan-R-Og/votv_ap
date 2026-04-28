@@ -20,32 +20,10 @@ local task_active = false
 local fuses = {}
 local fuse_debt = {}
 
-DELETE_LOCATION_ITEMS = true
-IGNORE_INVALID_ITEMS = false
-REQUIRE_DAY_ITEMS = false
+local last_item_failed = false
 
-function GetTaskData()
-    local GameMode = GetGameMode()
-    if GameMode:IsValid() then
-        --GameMode.Immortal = true
-        -- You now have the USaveGame object
-        local SaveGameObject = GameMode.saveSlot
-        if SaveGameObject:IsValid() then
-            return {
-                ["daysCompleted"] = SaveGameObject.Task.points_7_6DD8FF16419714EB5D548B976F625F36,
-                ["dailyTasksDone"] = SaveGameObject.Task.fails_51_26566E3641B156F3F6AB08B9355882ED,
-                ["level0SignalsSold"] = SaveGameObject.Task.level_0_16_88D206694129CF344988FCBE97D2746D,
-                ["level1SignalsSold"] = SaveGameObject.Task.level_1_17_DA0C9B2A415A9C3965B9CE94924FA2BF,
-                ["level2SignalsSold"] = SaveGameObject.Task.level_2_18_DA69C40F460C07F8F36EA9903A8616A4,
-                ["level3SignalsSold"] = SaveGameObject.Task.level_3_19_025F3E1E4D5816711A15A88F08F7C298,
-                ["tashBagsSold"] = SaveGameObject.Task.pr_level_0_22_6F755B9B4A891014FDCFD9A21465EE40,
-                ["serversRepaired"] = SaveGameObject.Task.pr_level_1_24_AFAD2026496CAE54AF64C7836EAE0406,
-                ["fusesReplaced"] = SaveGameObject.Task.pr_level_2_26_1D0983874395EE83333203B43085BCCF,
-                ["transformersRepaired"] = SaveGameObject.Task.pr_level_3_28_704A7A03492B930F8A1E4EA2959996CB,
-            }
-        end
-    end
-end
+DELETE_LOCATION_ITEMS = true
+REQUIRE_DAY_ITEMS = false
 
 function GetRecievedItems()
     local GameMode = GetGameMode()
@@ -124,9 +102,13 @@ function GetNextItem()
                 local internal_name = invert[string.lower(item_name)]
                 if internal_name ~= nil then
                     GiveItem(internal_name)
+                elseif last_item_failed then
+                    AddHint("Item skipped", HintType.Warning)
+                    last_item_failed = false
                 else
-                    AddHint("Item unsupported. :)", HintType.Error)
-                    if not IGNORE_INVALID_ITEMS then return end
+                    AddHint("Item unsupported. :)\nYou may stop your run here and report this to the maintainers, or press F9 again to skip this item\nIt will be lost forever if you do so", HintType.Error)
+                    last_item_failed = true
+                    return
                 end
             end
             CheckAutoItem(i+1)
@@ -142,6 +124,8 @@ end)
 
 function OnTouchProp(prop)
     local key = prop:get().Key:ToString()
+    -- Prevent items given by AP from triggering checks
+    if string.startswith(key, "APItem") then return end
     local name = prop:get().Name:ToString()
     local location = locationKeys[key] or locationKeys[name]
     if location and SendLocation(location) and DELETE_LOCATION_ITEMS then
@@ -194,24 +178,26 @@ function RegisterAllHooks()
         OnTouchProp(self)
     end)
     RegisterUniqueHook("/Game/objects/prop.prop_C:GetName", function(self, DisplayName, propname)
-        print(self:get():GetClass():GetFullName())
-        print(self:get():GetOuter():GetFullName())
         local key = self:get().Key:ToString()
         local location = locationKeys[key]
-        if location then
-            local scout = ScoutedLocations[GetAPLocationIDfromName(location)]
-            if scout ~= nil then
-                DisplayName:set(FText("[AP] " .. scout.item))
-            else
-                ScoutLocationByName(location)
+        if location ~= nil then
+            print("Found clientside location: " .. location)
+            local id = GetAPLocationIDfromName(location)
+            print("Serverside id: " .. tostring(id))
+            if id ~= nil and id >= 0 then
+                local scout = ScoutedLocations[id]
+                if scout ~= nil then
+                    DisplayName:set(FText("[AP] " .. scout.item))
+                else
+                    DisplayName:set(FText("[AP] Scouting..."))
+                    ScoutLocationByName(location)
+                end
             end
         end
     end)
 
-    local detected = false
     RegisterUniqueHook("/Game/objects/drone.drone_C:triggerFly", function(self, console)
         print("Drone has begun flight")
-
         local SaveSlot = GetSaveSlot()
         local soldTrashBags = 0
         if SaveSlot ~= nil then
@@ -361,7 +347,6 @@ end
 RegisterKeyBind(Key.F8, function()
     ExecuteInGameThread(function()
         RegisterAllHooks()
-        -- GetTaskData()
     end)
 end)
 

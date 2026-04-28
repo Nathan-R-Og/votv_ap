@@ -29,7 +29,7 @@ auto_map = {
 complex_item_map = {
     ["Progressive Sleeping Bag"] = function()
         local i = 0
-        for i=1,GetRecievedItems() do
+        for j=1,GetRecievedItems() do
             if GetAPItemNameFromId(item_list[i].item) == "Progressive Sleeping Bag" then
                 i = i + 1
             end
@@ -45,20 +45,24 @@ complex_item_map = {
             AddHint("You collected too many sleeping bags!", HintType.Error)
         end
     end,
-    ["Bunker Keycard"] = function()
-        local GameMode = GetGameMode()
-        local Pawn = GetPawn()
-        if GameMode:IsValid() and Pawn:IsValid() then
-            local out = {}
-            GameMode:spawnPropThroughGamemode(
-                FName("keycard"),
-                { ["Translation"] = Pawn:K2_GetActorLocation(), ["Scale3D"] = { ["X"] = 1.0, ["Y"] = 1.0, ["Z"] = 1.0 } },
-                1,
-                out
-            )
-            out["actor "].Open = "ALPHA_HIDEOUT"
-            Pawn:putObjectInventory2(out["actor "], false, {})
+    ["Progressive Camera"] = function()
+        local i = 0
+        for j=1,GetRecievedItems() do
+            print(item_list[i].item)
+            print(GetAPItemNameFromId(item_list[i].item))
+            if GetAPItemNameFromId(item_list[i].item) == "Progressive Camera" then
+                i = i + 1
+            end
         end
+
+        if i <= 2 then
+            GiveItem("cam_h_" .. i)
+        else
+            AddHint("You collected too many cameras!", HintType.Error)
+        end
+    end,
+    ["Bunker Keycard"] = function()
+        GiveItem("keycard", function(item) item.Open = "ALPHA_HIDEOUT" end)
     end,
     ["Kerfur-Omega Complete Manual"] = function()
         local Pawn = GetPawn()
@@ -78,6 +82,9 @@ function FillItemMap()
         local total = 0
         datatable:ForEachRow(function(k, v)
             local name = v.displayName_8_FE83ADBF40AA162942FCE589F5806DD2:ToString()
+            -- Special exceptions
+            if k == "bloodpipe" then return end
+
             if name ~= "" then
                 item_map[k] = name
                 total = total + 1
