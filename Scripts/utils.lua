@@ -45,6 +45,13 @@ function RegisterUniqueHook(hook, func)
     end
 end
 
+function NotifyUniqueOnNewObject(cls, func)
+    if not array_contains(existing_hooks, cls) then
+        table.insert(existing_hooks, cls)
+        NotifyOnNewObject(cls, func)
+    end
+end
+
 function string.startswith(str, match)
    return string.sub(str, 1, string.len(match)) == match
 end

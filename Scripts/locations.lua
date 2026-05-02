@@ -3,14 +3,6 @@
 -- Otherwise, the item uses its key if the map has multiple instances, or if more instances can be easily gotten
 locationKeys = {
     ["grock"]                  = "Green Fire Rock",
-    ["blackrock"]              = "Hell Rock",
-    ["argemia_13"]             = "White Argemia Plush",
-    ["argemia_12"]             = "Black Argemia Plush",
-    ["lambert"]                = "Lambert Plush",
-    ["kerfuro"]                = "Kerfur-Omega",
-    ["kerfurO_r"]              = "Kerfur-Omega",
-    ["kerfurO_p"]              = "Kerfur-Omega",
-    ["kerfurO_nc"]             = "Kerfur-Omega",
 
     ["argemia"]                = "Red Argemia Plush",
     ["argemia_0"]              = "Green Argemia Plush",
@@ -156,4 +148,12 @@ locationKeys = {
     ["kerfoout_maid"]          = "Maid Outfit",
     ["llama"]                  = "Llama Plush",
     [""]                       = "Thiccfus Plush"
+}
+
+createdGoals = {
+    ["/Game/objects/prop_kerfurOmega_0.prop_kerfurOmega_0_C"] = 0, -- Kerfur-Omega
+    ["/Game/objects/prop_h.prop_h_C"] = 1, -- Hell Rock
+    ["/Game/objects/prop_lambert.prop_lambert_C"] = 2, -- Lambert Plush
+    ["/Game/objects/prop_argw.prop_argw_C"] = 3, -- White Argemia Plush
+    ["/Game/objects/prop_argbl.prop_argbl_C"] = 4 -- Black Argemia Plush
 }

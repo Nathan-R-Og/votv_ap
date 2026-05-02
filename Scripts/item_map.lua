@@ -30,7 +30,7 @@ complex_item_map = {
     ["Progressive Sleeping Bag"] = function()
         local i = 0
         for j=1,GetRecievedItems() do
-            if GetAPItemNameFromId(item_list[i].item) == "Progressive Sleeping Bag" then
+            if GetAPItemNameFromId(item_list[j].item) == "Progressive Sleeping Bag" then
                 i = i + 1
             end
         end
@@ -48,9 +48,7 @@ complex_item_map = {
     ["Progressive Camera"] = function()
         local i = 0
         for j=1,GetRecievedItems() do
-            print(item_list[i].item)
-            print(GetAPItemNameFromId(item_list[i].item))
-            if GetAPItemNameFromId(item_list[i].item) == "Progressive Camera" then
+            if GetAPItemNameFromId(item_list[j].item) == "Progressive Camera" then
                 i = i + 1
             end
         end
@@ -71,6 +69,13 @@ complex_item_map = {
             Pawn:putObjectInventory2(blueprint, false, {})
         end
     end,
+    ["Scuba Gear"] = function()
+        GiveItem("scuba")
+        GiveItem("scuba_t")
+    end,
+    ["Kerfur"] = function()
+        SpawnSomething("/Game/objects/p_kerfus.p_kerfus_C")
+    end
 }
 
 item_map = {}
@@ -82,8 +87,11 @@ function FillItemMap()
         local total = 0
         datatable:ForEachRow(function(k, v)
             local name = v.displayName_8_FE83ADBF40AA162942FCE589F5806DD2:ToString()
+
             -- Special exceptions
             if k == "bloodpipe" then return end
+            if k == "hook_h" then return end
+            if k == "hook_s" then return end
 
             if name ~= "" then
                 item_map[k] = name

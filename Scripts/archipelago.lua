@@ -26,7 +26,8 @@ local CheckedLocations = {}
 local LocationsToScout = {}
 ScoutedLocations = {}
 
--- Goal = nil
+Goal = nil
+completed = false
 item_list = {}
 
 function connect(server, slot, password)
@@ -53,6 +54,7 @@ function connect(server, slot, password)
         ap:ConnectUpdate(nil, {"Lua-APClientPP"})
         print("Locations checked: " .. table.concat(ap.checked_locations, ", "))
         print("Goal: " .. slot_data["goal"])
+        Goal = slot_data["goal"]
     end
 
     function on_slot_refused(reasons)

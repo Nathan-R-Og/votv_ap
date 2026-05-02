@@ -333,6 +333,19 @@ function RegisterAllHooks()
         end
     end)
 
+    for cls, goal in pairs(createdGoals) do
+        print("Setting up goal check for " .. cls)
+        NotifyUniqueOnNewObject(cls, function(self)
+            if ap == nil or completed then return end
+            print("Checking goal " .. goal .. " against AP goal " .. Goal)
+            if goal == Goal then
+                ap:StatusUpdate(ap.ClientStatus.GOAL)
+                AddHint("You have reached your goal, congratulations!", HintType.Info)
+                completed = true
+            end
+        end)
+    end
+
     CheckDailyTask()
     local static_radio = StaticFindObject("/Game/objects/radiotower.radiotower_C")
     local radiotower = FindObject(static_radio, GetWorld(), "radiotower", true)
@@ -352,13 +365,13 @@ end)
 
 RegisterKeyBind(Key.F7, function()
     ExecuteInGameThread(function()
-        complex_item_map["Kerfur-Omega Complete Manual"]()
+        complex_item_map["Progressive Camera"]()
         FillItemMap()
     end)
 end)
 
 RegisterHook("/Script/Engine.PlayerController:ClientRestart", function(self, NewPawn)
-    NotifyOnNewObject("/Game/main/mainPlayer.mainPlayer_C", function(self)
+    NotifyUniqueOnNewObject("/Game/main/mainPlayer.mainPlayer_C", function(self)
         SetRecievedItems(0)
     end)
 
