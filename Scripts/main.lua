@@ -23,7 +23,6 @@ local fuse_debt = {}
 local last_item_failed = false
 
 DELETE_LOCATION_ITEMS = true
-REQUIRE_DAY_ITEMS = false
 
 function GetRecievedItems()
     local GameMode = GetGameMode()
@@ -98,8 +97,7 @@ function GetNextItem()
             if complex_item then
                 complex_item()
             else
-                local invert = lowercase_keys(table_invert(item_map))
-                local internal_name = invert[string.lower(item_name)]
+                local internal_name = inverse_item_map[string.lower(item_name)]
                 if internal_name ~= nil then
                     GiveItem(internal_name)
                 elseif last_item_failed then
@@ -188,7 +186,7 @@ function RegisterAllHooks()
                 local scout = ScoutedLocations[id]
                 if scout ~= nil then
                     DisplayName:set(FText("[AP] " .. scout.item))
-                else
+                elseif array_contains(ap.missing_locations, id) then
                     DisplayName:set(FText("[AP] Scouting..."))
                     ScoutLocationByName(location)
                 end
@@ -307,17 +305,12 @@ function RegisterAllHooks()
 
     -- Day Looping
     RegisterUniqueHook("/Game/objects/misc/daynightCycle.daynightCycle_C:ReceiveTick", function(self, DeltaSeconds)
-        local GameMode = GetGameMode()
-        local SaveGameObject = nil
-
-        if GameMode:IsValid() then
-            SaveGameObject = GameMode.saveSlot
-        end
-
+        if ap == nil then return end
+        local SaveGameObject = GetSaveSlot()
         local danc = GetDNC()
         if danc:IsValid() and SaveGameObject ~= nil then
             --safe zone of time before next day
-            if danc.Day >= danc.MaxTime - 5 and REQUIRE_DAY_ITEMS then
+            if danc.Day >= danc.MaxTime - 5 and options.DayAsItems then
                 --check if has next day
                 if SaveGameObject.savedTime.Z + 1 > have_days then
                     AddHint('You do not have the next day! Looping..', HintType.Warning)
@@ -337,8 +330,7 @@ function RegisterAllHooks()
         print("Setting up goal check for " .. cls)
         NotifyUniqueOnNewObject(cls, function(self)
             if ap == nil or completed then return end
-            print("Checking goal " .. goal .. " against AP goal " .. Goal)
-            if goal == Goal then
+            if goal == options.Objective then
                 ap:StatusUpdate(ap.ClientStatus.GOAL)
                 AddHint("You have reached your goal, congratulations!", HintType.Info)
                 completed = true

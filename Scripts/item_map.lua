@@ -18,6 +18,15 @@ auto_map = {
     ["Progressive Server Stability"] =      { hint = HintType.Info, run = function() Upgrade("serverStability") end },
     ["Progressive Transformer Stability"] = { hint = HintType.Info, run = function() Upgrade("transformer") end },
 
+    -- Handled by the received items to properly process the initial items received packet
+    -- TODO: See if we could move it here, and then just replay it when you receive the initial packet?
+    ["Plastic Scrap Recipe"] =              { hint = HintType.Info, run = function() end },
+    ["Metal Scrap Recipe"] =                { hint = HintType.Info, run = function() end },
+    ["Electronic Scrap Recipe"] =           { hint = HintType.Info, run = function() end },
+    ["Glass Scrap Recipe"] =                { hint = HintType.Info, run = function() end },
+    ["Rubber Scrap Recipe"] =               { hint = HintType.Info, run = function() end },
+    ["Paper Scrap Recipe"] =                { hint = HintType.Info, run = function() end },
+
     ["Drunk Trap"] = {
         hint = HintType.Error,
         run = function()
@@ -75,12 +84,28 @@ complex_item_map = {
     end,
     ["Kerfur"] = function()
         SpawnSomething("/Game/objects/p_kerfus.p_kerfus_C")
+    end,
+    ["Skull"] = function()
+        -- The skull in the prop data is not a valid skull for the ritual
+        local Pawn = GetPawn()
+        local blueprint = SpawnSomething("/Game/objects/prop_sskull.prop_sskull_C")
+        if Pawn:IsValid() and blueprint:IsValid() then
+            Pawn:putObjectInventory2(blueprint, false, {})
+        end
+    end,
+    ["Bonus Points"] = function()
+        local SaveGameObject = GetSaveSlot()
+        if SaveGameObject ~= nil then
+            SaveGameObject.Points = SaveGameObject.Points + options.BonusPointsAmount
+        end
     end
 }
 
 item_map = {}
+inverse_item_map = {}
 function FillItemMap()
     item_map = {}
+    inverse_item_map = {}
     local datatable = StaticFindObject("/Game/main/datatables/list_props.list_props")
     if datatable:IsValid() then
         print("Filling item map with " .. #datatable .. " items")
@@ -88,13 +113,11 @@ function FillItemMap()
         datatable:ForEachRow(function(k, v)
             local name = v.displayName_8_FE83ADBF40AA162942FCE589F5806DD2:ToString()
 
-            -- Special exceptions
-            if k == "bloodpipe" then return end
-            if k == "hook_h" then return end
-            if k == "hook_s" then return end
-
             if name ~= "" then
                 item_map[k] = name
+                if not inverse_item_map[string.lower(name)] then
+                    inverse_item_map[string.lower(name)] = k
+                end
                 total = total + 1
             end
         end)
