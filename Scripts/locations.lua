@@ -100,7 +100,6 @@ locationKeys = {
     ["HB0M3EdnEGgYzosohcI7sQ"] = "Car Keys",
     ["NFPjHKeSnM07GnM7W73D4Q"] = "Cooking Book",
     ["JdST4317y-uNFt9EB1k_6Q"] = "Miniature Gas Can",
-    ["edisylEKJm1zwO6O4UJDQw"] = "Hiking Boots",
     ["T_dFeL3A7rKqZ_AF6UDk8g"] = "Fisherman's Treasure",
     ["Oli9O-vS6yEtcR-U41xynQ"] = "Geiger Counter",
     ["CMEG2anUL3XRqgYpTazcTg"] = "EMF Detector",
@@ -115,6 +114,7 @@ locationKeys = {
     ["Sz3I7lf7ImmShwVm5PjCSg"] = "TR2 Car Battery Charger",
     ["xKQfSSbsNniDXoPmfuDmPw"] = "TR2 Shovel",
     ["iXwfsMOrPpCkuyymBPqWOw"] = "TR3 Watering Can",
+    ["edisylEKJm1zwO6O4UJDQw"] = "TR3 Hiking Boots",
     ["hejaIqT-gbaNl_q9YaCRIw"] = "TR3 Cat Bed",
     ["Ix3tMnrNANBbN9s1g_RCaw"] = "Security Booth Shovel",
     ["Fagq6QvyBmSvDOlqzGUTjA"] = "Abandoned Shack Shovel",
@@ -147,7 +147,14 @@ locationKeys = {
     ["eriewell"]               = "Eriewell",
     ["kerfoout_maid"]          = "Maid Outfit",
     ["llama"]                  = "Llama Plush",
-    [""]                       = "Thiccfus Plush"
+    ["thiccfus"]               = "Thiccfus Plush"
+}
+
+preserve_items = {
+    ["dingus"] = true,
+    ["argemwell"] = true,
+    ["gnarpwell"] = true,
+    ["eriewell"] = true
 }
 
 createdGoals = {

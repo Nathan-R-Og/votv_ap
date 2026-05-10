@@ -16,7 +16,7 @@ require("utils")
 
 -- global to this mod
 local game_name = "Voices of the Void"
-local items_handling = AP.Permission  -- full remote
+local items_handling = AP.Permission.AUTO_ENABLED  -- full remote
 local client_version = {0, 6, 7}  -- optional, defaults to lib version
 local message_format = AP.RenderFormat.TEXT
 ---@type APClient
@@ -25,11 +25,22 @@ local LocationsToCheck = {}
 local CheckedLocations = {}
 local LocationsToScout = {}
 ScoutedLocations = {}
+MissingLocations = {}
 
 options = nil
 completed = false
-locked_recipes = {}
 item_list = {}
+
+local recipeResultToItemName = {
+    ["scrap_plastic"] = "Plastic Scrap Recipe",
+    ["scrap_metal"] = "Metal Scrap Recipe",
+    ["scrap_elec"] = "Electronic Scrap Recipe",
+    ["scrap_glass"] = "Glass Scrap Recipe",
+    ["scrap_rubber"] = "Rubber Scrap Recipe",
+    ["scrap_paper"] = "Paper Scrap Recipe",
+    ["scrap_wood"] = "Wood Scrap Recipe",
+    ["scrap_rubble"] = "Rubble Recipe",
+}
 
 function connect(server, slot, password)
     function on_socket_connected()
@@ -54,67 +65,96 @@ function connect(server, slot, password)
         AddHint("Slot connected", HintType.Info)
         ap:ConnectUpdate(nil, {"Lua-APClientPP"})
         print("Locations checked: " .. table.concat(ap.checked_locations, ", "))
+        print("Locations missing: " .. table.concat(ap.missing_locations, ", "))
+        MissingLocations = ap.missing_locations
         options = slot_data.options
 
         if options.UpgradesAsItems >= 1 then
+            print("UpgradeAsItems: " .. options.UpgradesAsItems)
             local laptop = FindFirstOf("ui_laptop_C")
             if laptop == nil then
                 AddHint("Couldn't disable upgrade controls!", HintType.Error)
             else
                 local upgrades = {"downloadSpd", "processLvl", "processSpeed", "coordDrift", "coordPingSpeed", "coordMovementSpeed", "coordCooldown", "detecQual"}
                 if options.UpgradesAsItems == 2 then
-                    upgrades = table.pack(table.unpack(upgrades), "coordRadarSpeed", "radarHist", "radar", "compTime", "scanner", "scannerFr")
+                    for _, upg in ipairs({"coordRadarSpeed", "radarHist", "radar", "compTime", "scanner", "scannerFr"}) do
+                        table.insert(upgrades, upg)
+                    end
                 end
                 print("Disabling controls of " .. table.concat(upgrades, ", "))
                 for _, name in ipairs(upgrades) do
                     local compName = upgradeFullNames[name][2]
-                    laptop[compName].button_upgDown:SetVisibility(ESlateVisibility.Hidden)
-                    laptop[compName].button_upgUp:SetVisibility(ESlateVisibility.Hidden)
+                    laptop[compName].button_upgDown:SetVisibility(2) -- Hidden
+                    laptop[compName].button_upgUp:SetVisibility(2) -- Hidden
                 end
             end
         end
 
-        if options.ShopItems then
-            local storeDatatable = StaticFindObject("/Game/main/datatables/list_store.list_store")
-            local propDatatable = StaticFindObject("/Game/main/datatables/list_prop.list_prop")
-            if storeDatatable:IsValid() and propDatatable:IsValid() then
-                local propAsItems = {}
-                propDatatable:ForEach(function(name, data)
-                    for _, dname in ipairs(slot_data.ItemNames) do
-                        if string.lower(data.displayName_8_FE83ADBF40AA162942FCE589F5806DD2) == string.lower(dname) then
-                            table.insert(propAsItems, name)
-                        end
-                    end
-                end)
-                storeDatatable:ForEach(function(name, data)
-                    if array_contains(propAsItems, data.name_14_B3814BBE478D1FA0AB005BB6386C1541) then
-                        print("Removing " .. name .. " from shop")
-                        storeDatatable:RemoveRow(name)
-                    end
-                end)
+        local storeDatatable = StaticFindObject("/Game/main/datatables/list_store.list_store")
+        local propDatatable = StaticFindObject("/Game/main/datatables/list_props.list_props")
+        if storeDatatable:IsValid() and propDatatable:IsValid() then
+            local propAsItems = {}
+            if array_contains(slot_data.ItemNames, "Progressive Sleeping Bag") then
+                table.insert(propAsItems, "sleepingbag")
+                table.insert(propAsItems, "sleepingbag_br")
+                table.insert(propAsItems, "sleepingbag_st")
             end
+            if array_contains(slot_data.ItemNames, "Progressive Camera") then
+                table.insert(propAsItems, "cam_h_0")
+                table.insert(propAsItems, "cam_h_1")
+                table.insert(propAsItems, "cam_h_2")
+            end
+            if array_contains(slot_data.ItemNames, "Scuba Gear") then
+                table.insert(propAsItems, "scuba")
+                table.insert(propAsItems, "scuba_t")
+            end
+            if array_contains(slot_data.ItemNames, "Kerfur") or array_contains(slot_data.ItemNames, "Blue Kerfur") then
+                table.insert(propAsItems, "kerfus")
+                table.insert(propAsItems, "kerfus_0")
+                table.insert(propAsItems, "kerfus_1")
+                table.insert(propAsItems, "kerfus_2")
+            end
+            propDatatable:ForEachRow(function(name, data)
+                for _, dname in ipairs(slot_data.ItemNames) do
+                    if string.lower(data.displayName_8_FE83ADBF40AA162942FCE589F5806DD2:ToString()) == string.lower(dname) then
+                        table.insert(propAsItems, name)
+                    end
+                end
+            end)
+            print("Total items to check: " .. #propAsItems)
+            storeDatatable:ForEachRow(function(name, data)
+                if array_contains(propAsItems, name) then
+                    print("Removing " .. name .. " from shop")
+                    storeDatatable:RemoveRow(name)
+                end
+            end)
+        else
+            AddHint("Failed to remove shop items", HintType.Error)
         end
 
-        if options.ScrapRecipesAsItems then
-            local datatable = StaticFindObject("/Game/main/datatables/list_crafting.list_crafting")
-            local fNameToItemName = {
-                ["scrap_Plastic"] = "Plastic Scrap Recipe",
-                ["scrap_Metal"] = "Metal Scrap Recipe",
-                ["scrap_elec"] = "Electronic Scrap Recipe",
-                ["scrap_glass"] = "Glass Scrap Recipe",
-                ["scrap_rubber"] = "Rubber Scrap Recipe",
-                ["scrap_paper"] = "Paper Scrap Recipe",
-                ["scrap_Wood"] = "Wood Scrap Recipe",
-                ["scrap_rubble"] = "Rubble Recipe",
-            }
+        if options.ScrapRecipesAsItems == 1 then
+            local datatable = StaticFindObject("/Game/main/datatables/list_craftRecipes.list_craftRecipes")
             if datatable:IsValid() then
-                datatable:ForEach(function(name, data)
-                    local fname = data.result_6_893C01EE4438C4AAF7E917954BB7F448
-                    local item = fNameToItemName[fname]
-                    if fname then
-                        datatable:RemoveRow(name)
-                        if locked_recipes[item] == nil then locked_recipes[item] = {} end
-                        table.insert(locked_recipes[item], {name, data})
+                datatable:ForEachRow(function(name, data)
+                    local result = data.result_6_893C01EE4438C4AAF7E917954BB7F448
+                    if #result < 1 then return end
+                    local fname = result[1]:ToString()
+                    local item = recipeResultToItemName[fname]
+                    if item and array_contains(slot_data.ItemNames, item) then
+                        local has_ap_lock = false
+                        local ingredients = data.ingredients_4_403E56644866154088F5C3A4F2E20B55
+                        ingredients:ForEach(function(index, elem)
+                            if elem:get():ToString() == "__AP_LOCK__" then
+                                has_ap_lock = true
+                                return true
+                            end
+                        end)
+                        if has_ap_lock then
+                            print(name .. " is already disabled")
+                        else
+                            print("Disabling " .. name)
+                            ingredients[#ingredients + 1] = FString("__AP_LOCK__")
+                        end
                     end
                 end)
             else
@@ -124,7 +164,7 @@ function connect(server, slot, password)
 
         local SaveGameObject = GetSaveSlot()
         if SaveGameObject ~= nil then
-            if options.FunnySetting and not SaveGameObject.localGameRules.funnySetting_29_3DBB4B5041357E51DA0DFBAD9368E881 then
+            if options.FunnySetting == 1 and not SaveGameObject.localGameRules.funnySetting_29_3DBB4B5041357E51DA0DFBAD9368E881 then
                 AddHint("The AP includes funny items, but the setting is not enabled!", HintType.Error)
             end
         end
@@ -136,20 +176,38 @@ function connect(server, slot, password)
 
     function on_items_received(received_items)
         print("Items received: " .. #received_items)
-        local datatable = StaticFindObject("/Game/main/datatables/list_crafting.list_crafting")
+        local datatable = StaticFindObject("/Game/main/datatables/list_craftRecipes.list_craftRecipes")
         for _, item in ipairs(received_items) do
             table.insert(item_list, item)
-
-            local recipes = locked_recipes[item]
-            if recipes ~= nil then
-                if datatable:IsValid() then
-                    print("Unlocking " .. item)
-                    for _, recipe in ipairs(recipes) do
-                        datatable:AddRow(table.unpack(recipe))
+            
+            local item_name = GetAPItemNameFromId(item.item)
+            if datatable:IsValid() then
+                datatable:ForEachRow(function(name, data)
+                    local result = data.result_6_893C01EE4438C4AAF7E917954BB7F448
+                    if #result < 1 then return end
+                    local fname = result[1]:ToString()
+                    local unlock_name = recipeResultToItemName[fname]
+                    if unlock_name == item_name then
+                        local non_ap_lock_items = {}
+                        local ingredients = data.ingredients_4_403E56644866154088F5C3A4F2E20B55
+                        ingredients:ForEach(function(index, elem)
+                            if elem:get():ToString() ~= "__AP_LOCK__" then
+                                table.insert(non_ap_lock_items, elem:get())
+                            end
+                        end)
+                        if #non_ap_lock_items < #ingredients then
+                            print("Enabling " .. name)
+                            ingredients:Empty()
+                            for index, non_ap_lock in ipairs(non_ap_lock_items) do
+                                ingredients[index] = non_ap_lock
+                            end
+                        else
+                            print(name .. " is already enabled")
+                        end
                     end
-                else
-                    AddHint("Failed to unlock " .. item, HintType.Error)
-                end
+                end)
+            else
+                AddHint("Failed to unlock " .. name, HintType.Error)
             end
         end
         print("Total items received: " .. #item_list)
@@ -168,6 +226,13 @@ function connect(server, slot, password)
                 else
                     local player = ap:get_player_alias(info.player)
                     ScoutedLocations[info.location] = { ["item"] = item, ["player"] = player }
+                    -- if info.location == looking_at_location then
+                    --     local Pawn = GetPawn()
+                    --     if Pawn then
+                    --         Pawn.lookatName = FText("[AP] " .. item .. " for " .. player)
+                    --     end
+                    --     looking_at_location = -1
+                    -- end
                     if array_contains(LocationsToCheck, info.location) then
                         ShowAchievementPopup(1, item .. " for " .. player, 1, 1)
                     end
@@ -282,6 +347,7 @@ function connectToAp(host, slot, password)
 end
 
 function disconnect()
+    if ap == nil then return end
     CheckedLocations = {}
     item_list = {}
     ap = nil
@@ -315,6 +381,7 @@ end
 
 function ScoutLocationByName(location_name)
     if ap == nil then return end
+
     local id = GetAPLocationIDfromName(location_name)
     ScoutLocation(id)
 end
@@ -322,7 +389,7 @@ end
 function ScoutLocation(id)
     if ap == nil then return end
     if id == nil or id < 0 then return end
-    if LocationsToScout[id] ~= nil or not array_contains(ap.missing_locations, id) then return end
+    if LocationsToScout[id] ~= nil or not array_contains(MissingLocations, id) then return end
     print("Scouting location " .. tostring(id))
     ap:LocationScouts({ id }, 0)
     LocationsToScout[id] = true
@@ -348,7 +415,7 @@ end
 
 function SendLocationId(id)
     if id == nil or id < 0 then return false end
-    if array_contains(LocationsToCheck, id) or not array_contains(ap.missing_locations, id) then return false end
+    if array_contains(LocationsToCheck, id) or not array_contains(MissingLocations, id) then return false end
     print("Trying to send location " .. tostring(id))
     add_unique(LocationsToCheck, id)
     local scoutInfo = ScoutedLocations[id]

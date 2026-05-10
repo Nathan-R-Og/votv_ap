@@ -27,6 +27,16 @@ auto_map = {
     ["Rubber Scrap Recipe"] =               { hint = HintType.Info, run = function() end },
     ["Paper Scrap Recipe"] =                { hint = HintType.Info, run = function() end },
 
+    ["Lifecrystal Signal"] = {
+        hint = HintType.Info,
+        run = function()
+            local SaveGameObject = GetSaveSlot()
+            if SaveGameObject ~= nil then
+                SaveGameObject.forceObjects[#SaveGameObject.forceObjects + 1] = FName("lifecrystal")
+            end
+        end
+    },
+
     ["Drunk Trap"] = {
         hint = HintType.Error,
         run = function()
@@ -85,6 +95,15 @@ complex_item_map = {
     ["Kerfur"] = function()
         SpawnSomething("/Game/objects/p_kerfus.p_kerfus_C")
     end,
+    ["Blue Kerfur"] = function()
+        SpawnSomething("/Game/objects/p_kerfus.p_kerfus_C")
+    end,
+    ["Red Kerfur"] = function()
+        SpawnSomething("/Game/objects/p_kerfus_r.p_kerfus_r_C")
+    end,
+    ["Pink Kerfur"] = function()
+        SpawnSomething("/Game/objects/p_kerfus_y.p_kerfus_y_C")
+    end,
     ["Skull"] = function()
         -- The skull in the prop data is not a valid skull for the ritual
         local Pawn = GetPawn()
@@ -113,9 +132,18 @@ function FillItemMap()
         datatable:ForEachRow(function(k, v)
             local name = v.displayName_8_FE83ADBF40AA162942FCE589F5806DD2:ToString()
 
+            -- Special cases
+            if k == "axe" then name = "Axe" end
+            if k == "dingus" then name = "Maxwell" end
+            if k == "argemwell" then name = "Argemwell" end
+            if k == "gnarpwell" then name = "Gnarpwell" end
+            if k == "eriewell" then name = "Eriewell" end
+            if k == "Blueprint_1" then name = "Radioactive Capsule Blueprint" end
+            if k == "animalhead_0" then name = "Deer Skull" end
+
             if name ~= "" then
                 item_map[k] = name
-                if not inverse_item_map[string.lower(name)] then
+                if inverse_item_map[string.lower(name)] == nil then
                     inverse_item_map[string.lower(name)] = k
                 end
                 total = total + 1
