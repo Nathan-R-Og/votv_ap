@@ -17,7 +17,8 @@ require("utils")
 -- global to this mod
 local game_name = "Voices of the Void"
 local items_handling = AP.Permission.AUTO_ENABLED  -- full remote
-local client_version = {0, 0, 2}
+local client_version = {0, 6, 7}
+local mod_version = {0, 0, 2}
 local message_format = AP.RenderFormat.TEXT
 ---@type APClient
 ap = nil
@@ -59,14 +60,14 @@ function connect(server, slot, password)
         options = slot_data.options
 
         if slot_data.Version then
-            local mod_version_str = table.concact(client_version, ".")
+            local mod_version_str = table.concact(mod_version, ".")
             local ap_version_str = table.concact(slot_data.Version, ".")
             local suffix = " (Mod: " .. ap_version_str .. ", AP: " .. ap_version_str .. ")"
-            if slot_data.Version[1] ~= client_version[1] then
+            if slot_data.Version[1] ~= mod_version[1] then
                 AddHint("Major version difference with the AP!!" .. suffix, HintType.Error)
-            elseif slot_data.Version[2] ~= client_version[2] then
+            elseif slot_data.Version[2] ~= mod_version[2] then
                 AddHint("Minor version difference with the AP!" .. suffix, HintType.Warning)
-            elseif slot_data.Version[3] ~= client_version[3] then
+            elseif slot_data.Version[3] ~= mod_version[3] then
                 -- AddHint("Revision difference with the AP" .. suffix, HintType.Info)
             end
         end
