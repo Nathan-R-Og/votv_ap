@@ -17,7 +17,7 @@ require("utils")
 -- global to this mod
 local game_name = "Voices of the Void"
 local items_handling = AP.Permission.AUTO_ENABLED  -- full remote
-local client_version = {0, 0, 2}  -- optional, defaults to lib version
+local client_version = {0, 0, 2}
 local message_format = AP.RenderFormat.TEXT
 ---@type APClient
 ap = nil
@@ -69,8 +69,17 @@ function connect(server, slot, password)
         MissingLocations = ap.missing_locations
         options = slot_data.options
 
-        if slot_data.Version and slot_data.Version ~= table.concat(client_version, ".") then
-            AddHint("The client version does not match the expected version from AP!", HintType.Warning)
+        if slot_data.Version then
+            local mod_version_str = table.concact(client_version, ".")
+            local ap_version_str = table.concact(slot_data.Version, ".")
+            local suffix = " (Mod: " .. ap_version_str .. ", AP: " .. ap_version_str .. ")"
+            if slot_data.Version[1] ~= client_version[1] then
+                AddHint("Major version difference with the AP!!" .. suffix, HintType.Error)
+            else if slot_data.Version[2] ~= client_version[2] then
+                AddHint("Minor version difference with the AP!" .. suffix, HintType.Warning)
+            else if slot_data.Version[3] ~= client_version[3] then
+                -- AddHint("Revision difference with the AP" .. suffix, HintType.Info)
+            end
         end
 
         if options.UpgradesAsItems >= 1 then
