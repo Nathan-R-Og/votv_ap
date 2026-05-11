@@ -5,10 +5,6 @@ UEHelpers = require("UEHelpers")
 require("utils")
 require("game_utils")
 require("archipelago")
-require("item_map")
-
---ap day items
-have_days = 0
 
 --last achieved day
 local latest_day = 0
@@ -20,8 +16,10 @@ local task_active = false
 local fuses = {}
 local fuse_debt = {}
 
+--ap day items
+have_days = 0
 -- TODO: Store that somewhere in the save slot
-local sold_garbage_bags = 0
+sold_garbage_bags = 0
 
 looking_at_location = -1
 
@@ -351,7 +349,7 @@ function RegisterAllHooks()
             if danc.Day >= danc.MaxTime - 5 and options.DayAsItems == 1 then
                 --check if has next day
                 if SaveGameObject.savedTime.Z + 1 > have_days then
-                    AddHint('You do not have the next day! Looping..', HintType.Warning)
+                    AddHint('You do not have the next day! Looping...', HintType.Warning)
                     danc.Day = 0
                 end
             end
@@ -360,7 +358,7 @@ function RegisterAllHooks()
             while SaveGameObject.savedTime.Z > latest_day do
                 latest_day = latest_day + 1
                 SendLocation("Survive Day " .. tostring(latest_day))
-                if options.Objective == 6 and options.SurviveDay <= latest_day and not completed then
+                if options and options.Objective == 6 and options.SurviveDay <= latest_day and not completed then
                     ReachGoal()
                 end
             end

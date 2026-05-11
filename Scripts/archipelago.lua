@@ -60,8 +60,8 @@ function connect(server, slot, password)
         options = slot_data.options
 
         if slot_data.Version then
-            local mod_version_str = table.concact(mod_version, ".")
-            local ap_version_str = table.concact(slot_data.Version, ".")
+            local mod_version_str = table.concat(mod_version, ".")
+            local ap_version_str = table.concat(slot_data.Version, ".")
             local suffix = " (Mod: " .. ap_version_str .. ", AP: " .. ap_version_str .. ")"
             if slot_data.Version[1] ~= mod_version[1] then
                 AddHint("Major version difference with the AP!!" .. suffix, HintType.Error)
@@ -156,9 +156,10 @@ function connect(server, slot, password)
         local I = GetRecievedItems()
         for _, item in ipairs(received_items) do
             table.insert(item_list, item)
-            local auto = auto_map[item.name]
+            local name = GetAPItemNameFromId(item.item)
+            local auto = auto_map[name]
             if auto and auto.replay and item.index < I then
-                printl("Replaying " .. item.name)
+                print("Replaying " .. name)
                 auto.run()
             end
         end
@@ -303,6 +304,8 @@ function disconnect()
     CheckedLocations = {}
     item_list = {}
     ap = nil
+    have_days = 0
+    sold_garbage_bags = 0
     collectgarbage("collect")
     AddHint("Successfully Disconnected.\nHave a good day!", HintType.Warning)
 end
