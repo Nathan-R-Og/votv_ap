@@ -379,13 +379,13 @@ upgradeFullNames = {
     ["coordPingSpeed"] = {"upg_coordPingSpeed_98_1F24EADD4D27B653A932A48987669FCB", "upgrade_pingSpeed"},
     ["coordMovementSpeed"] = {"upg_coordMovementSpeed_97_16B378034FDC97CB0628CBABB7674074", "upgrade_sensorSpeed"},
     ["coordCooldown"] = {"upg_coordCooldown_77_DFB1A6684A3BDDFEF94C6689D37CD2E8", "upgrade_cooldown"},
-    ["detecQual"] = {"upg_detecQual_54_0111E1654106C524D03278820389DDB3", "upgrade_deteQ"},
+    ["scanner"] = {"upg_scanner_25_672849B8449E51A274C37DA92AD8B544", "upgrade_sensor"},
     -- Filler
     ["coordRadarSpeed"] = {"upg_coordRadarSpeed_96_FBB3C8E541C23756B2F8A294D600F145", "upgrade_radarSpeed"},
     ["radarHist"] = {"upg_radarHist_93_3D85E50D4EA72B5864C6E0815C87CEB7", "upgrade_radarHist"},
     ["radar"] = {"upg_radar_speed_94_F1113DC149FA8DC9995F8EBAF2C7A452", "upgrade_radarSpd"},
     ["compTime"] = {"upg_compTime_69_7728FF794AD678EC9B481B840C119A20", "upgrade_breakerSpeed"},
-    ["scanner"] = {"upg_scanner_25_672849B8449E51A274C37DA92AD8B544", "upgrade_sensor"},
+    ["detecQual"] = {"upg_detecQual_54_0111E1654106C524D03278820389DDB3", "upgrade_deteQ"},
     ["scannerFr"] = {"upg_scannerFr_28_D57F12F148F3BE477D20A4A1494A8D62", "upgrade_sensor_fr"},
     -- Unused
     ["downloadFiltSize"] = {"upg_downloadFiltSize_100_4219D6DB44F558ABA055C7B749BDBCAD", nil},

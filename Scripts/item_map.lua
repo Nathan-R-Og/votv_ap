@@ -36,6 +36,15 @@ auto_map = {
             end
         end
     },
+    ["Bonus Points"] = {
+        hint = HintType.Info,
+        run = function()
+            local Gamemode = GetGameMode()
+            if Gamemode ~= nil then
+                Gamemode:AddPoints(options.BonusPointsAmount)
+            end
+        end
+    },
 
     ["Drunk Trap"] = {
         hint = HintType.Error,
@@ -111,12 +120,6 @@ complex_item_map = {
         if Pawn:IsValid() and blueprint:IsValid() then
             Pawn:putObjectInventory2(blueprint, false, {})
         end
-    end,
-    ["Bonus Points"] = function()
-        local SaveGameObject = GetSaveSlot()
-        if SaveGameObject ~= nil then
-            SaveGameObject.Points = SaveGameObject.Points + options.BonusPointsAmount
-        end
     end
 }
 
@@ -134,10 +137,6 @@ function FillItemMap()
 
             -- Special cases
             if k == "axe" then name = "Axe" end
-            if k == "dingus" then name = "Maxwell" end
-            if k == "argemwell" then name = "Argemwell" end
-            if k == "gnarpwell" then name = "Gnarpwell" end
-            if k == "eriewell" then name = "Eriewell" end
             if k == "Blueprint_1" then name = "Radioactive Capsule Blueprint" end
             if k == "animalhead_0" then name = "Deer Skull" end
 
@@ -149,6 +148,13 @@ function FillItemMap()
                 total = total + 1
             end
         end)
+        -- To make both Shrimps Pack and Shrimp Pack valid
+        inverse_item_map["shrimp pack"] = "shrimp"
+        total = total + 1
+        for k,name in pairs(locationKeys) do
+            inverse_item_map[string.lower(name)] = k
+            total = total + 1
+        end
         print("Filtered down to " .. total .. " items")
     end
 end

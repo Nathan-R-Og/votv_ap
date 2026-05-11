@@ -178,6 +178,13 @@ function CheckFuseHealth(index, obj)
     end
 end
 
+function ReachGoal()
+    if ap == nil then return end
+    ap:StatusUpdate(ap.ClientStatus.GOAL)
+    AddHint("You have reached your goal, congratulations!", HintType.Info)
+    completed = true
+end
+
 function RegisterAllHooks()
     RegisterUniqueHook("/Game/objects/prop.prop_C:playerTryToGrab", function(self, player, collected)
         OnTouchProp(self)
@@ -355,9 +362,12 @@ function RegisterAllHooks()
             end
 
             --do survived checks
-            if SaveGameObject.savedTime.Z > latest_day then
-                latest_day = SaveGameObject.savedTime.Z
+            while SaveGameObject.savedTime.Z > latest_day do
+                latest_day = latest_day + 1
                 SendLocation("Survive Day " .. tostring(latest_day))
+                if options.Objective == 6 and options.SurviveDay <= latest_day and not completed then
+                    ReachGoal()
+                end
             end
         end
     end)
@@ -367,9 +377,7 @@ function RegisterAllHooks()
         NotifyUniqueOnNewObject(cls, function(self)
             if ap == nil or completed then return end
             if goal == options.Objective then
-                ap:StatusUpdate(ap.ClientStatus.GOAL)
-                AddHint("You have reached your goal, congratulations!", HintType.Info)
-                completed = true
+                ReachGoal()
             end
         end)
     end
@@ -380,11 +388,9 @@ function RegisterAllHooks()
             local has_tile = self:get().tiles[index]
             if not has_tile then return end
         end
-        ap:StatusUpdate(ap.ClientStatus.GOAL)
-        AddHint("You have reached your goal, congratulations!", HintType.Info)
+        ReachGoal()
         self:get():Open(true)
         self:get().Out:Open(true)
-        completed = true
     end)
 
     CheckDailyTask()
@@ -396,6 +402,8 @@ function RegisterAllHooks()
         CheckFuseHealth(radar.ID, radar)
     end
     FillItemMap()
+
+    AddHint("Remember to connect to Archipelago!", HintType.Thought)
 end
 
 RegisterKeyBind(Key.F8, function()
@@ -407,10 +415,8 @@ end)
 RegisterKeyBind(Key.F7, function()
     ExecuteInGameThread(function()
         AddHint("Debug shortcut", HintType.Warning)
-        local Pawn = GetPawn()
-        if Pawn then
-            Pawn.lookatName = FText("[AP] TEST!")
-        end
+        print(inverse_item_map["shrimp pack"])
+        print(inverse_item_map["shrimps pack"])
     end)
 end)
 

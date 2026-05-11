@@ -10,9 +10,9 @@ locationKeys = {
     ["argemia_9"]              = "Yellow Argemia Plush",
     ["argemia_10"]             = "Cyan Argemia Plush",
     ["argemia_11"]             = "Magenta Argemia Plush",
-    [""]                       = "Nuclear Yellow Argemia Plush",
-    [""]                       = "Nuclear Cyan Argemia Plush",
-    [""]                       = "Nuclear Magenta Argemia Plush",
+    ["argemia_6"]              = "Nuclear Yellow Argemia Plush",
+    ["argemia_7"]              = "Nuclear Orange Argemia Plush",
+    ["argemia_8"]              = "Nuclear Pink Argemia Plush",
 
     ["abplush"]                = "Antibreather Plush",
     ["eriePlush"]              = "Erie Plush",

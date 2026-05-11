@@ -10,14 +10,14 @@
 
 local AP = require("lua-apclientpp")
 
-require("item_map")
 require("locations")
+require("item_map")
 require("utils")
 
 -- global to this mod
 local game_name = "Voices of the Void"
 local items_handling = AP.Permission.AUTO_ENABLED  -- full remote
-local client_version = {0, 6, 7}  -- optional, defaults to lib version
+local client_version = {0, 0, 2}  -- optional, defaults to lib version
 local message_format = AP.RenderFormat.TEXT
 ---@type APClient
 ap = nil
@@ -69,15 +69,19 @@ function connect(server, slot, password)
         MissingLocations = ap.missing_locations
         options = slot_data.options
 
+        if slot_data.Version and slot_data.Version ~= table.concat(client_version, ".") then
+            AddHint("The client version does not match the expected version from AP!", HintType.Warning)
+        end
+
         if options.UpgradesAsItems >= 1 then
             print("UpgradeAsItems: " .. options.UpgradesAsItems)
             local laptop = FindFirstOf("ui_laptop_C")
             if laptop == nil then
                 AddHint("Couldn't disable upgrade controls!", HintType.Error)
             else
-                local upgrades = {"downloadSpd", "processLvl", "processSpeed", "coordDrift", "coordPingSpeed", "coordMovementSpeed", "coordCooldown", "detecQual"}
+                local upgrades = {"downloadSpd", "processLvl", "processSpeed", "coordDrift", "coordPingSpeed", "coordMovementSpeed", "coordCooldown", "scanner"}
                 if options.UpgradesAsItems == 2 then
-                    for _, upg in ipairs({"coordRadarSpeed", "radarHist", "radar", "compTime", "scanner", "scannerFr"}) do
+                    for _, upg in ipairs({"coordRadarSpeed", "radarHist", "radar", "compTime", "detecQual", "scannerFr"}) do
                         table.insert(upgrades, upg)
                     end
                 end
