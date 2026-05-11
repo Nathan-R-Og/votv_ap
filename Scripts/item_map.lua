@@ -115,7 +115,7 @@ complex_item_map = {
         SpawnSomething("/Game/objects/p_kerfus_r.p_kerfus_r_C")
     end,
     ["Pink Kerfur"] = function()
-        SpawnSomething("/Game/objects/p_kerfus_y.p_kerfus_y_C")
+        SpawnSomething("/Game/objects/p_kerfus_p.p_kerfus_p_C")
     end,
     ["Skull"] = function()
         -- The skull in the prop data is not a valid skull for the ritual
