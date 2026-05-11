@@ -8,7 +8,7 @@ require("archipelago")
 require("item_map")
 
 --ap day items
-local have_days = 0
+have_days = 0
 
 --last achieved day
 local latest_day = 0
@@ -64,11 +64,6 @@ function CheckAutoItem(i)
     if i < #item_list then
         local next_item = item_list[i+1]
         local item_name = GetAPItemNameFromId(next_item.item)
-        if item_name == "Day" then
-            AddHint("You got a new day!", HintType.Thought)
-            have_days = have_days + 1
-            return CheckAutoItem(i+1)
-        end
         local auto_item = auto_map[item_name]
         if auto_item ~= nil then
             AddHint(item_name .. " from " .. ap:get_player_alias(next_item.player), auto_item.hint)
@@ -415,8 +410,8 @@ end)
 RegisterKeyBind(Key.F7, function()
     ExecuteInGameThread(function()
         AddHint("Debug shortcut", HintType.Warning)
-        print(inverse_item_map["shrimp pack"])
-        print(inverse_item_map["shrimps pack"])
+        auto_map["Plastic Scrap Recipe"].run()
+        auto_map["Day"].run()
     end)
 end)
 

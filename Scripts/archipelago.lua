@@ -31,17 +31,6 @@ options = nil
 completed = false
 item_list = {}
 
-local recipeResultToItemName = {
-    ["scrap_plastic"] = "Plastic Scrap Recipe",
-    ["scrap_metal"] = "Metal Scrap Recipe",
-    ["scrap_elec"] = "Electronic Scrap Recipe",
-    ["scrap_glass"] = "Glass Scrap Recipe",
-    ["scrap_rubber"] = "Rubber Scrap Recipe",
-    ["scrap_paper"] = "Paper Scrap Recipe",
-    ["scrap_wood"] = "Wood Scrap Recipe",
-    ["scrap_rubble"] = "Rubble Recipe",
-}
-
 function connect(server, slot, password)
     function on_socket_connected()
         AddHint("Socket connected", HintType.Info)
@@ -75,9 +64,9 @@ function connect(server, slot, password)
             local suffix = " (Mod: " .. ap_version_str .. ", AP: " .. ap_version_str .. ")"
             if slot_data.Version[1] ~= client_version[1] then
                 AddHint("Major version difference with the AP!!" .. suffix, HintType.Error)
-            else if slot_data.Version[2] ~= client_version[2] then
+            elseif slot_data.Version[2] ~= client_version[2] then
                 AddHint("Minor version difference with the AP!" .. suffix, HintType.Warning)
-            else if slot_data.Version[3] ~= client_version[3] then
+            elseif slot_data.Version[3] ~= client_version[3] then
                 -- AddHint("Revision difference with the AP" .. suffix, HintType.Info)
             end
         end
@@ -146,33 +135,7 @@ function connect(server, slot, password)
         end
 
         if options.ScrapRecipesAsItems == 1 then
-            local datatable = StaticFindObject("/Game/main/datatables/list_craftRecipes.list_craftRecipes")
-            if datatable:IsValid() then
-                datatable:ForEachRow(function(name, data)
-                    local result = data.result_6_893C01EE4438C4AAF7E917954BB7F448
-                    if #result < 1 then return end
-                    local fname = result[1]:ToString()
-                    local item = recipeResultToItemName[fname]
-                    if item and array_contains(slot_data.ItemNames, item) then
-                        local has_ap_lock = false
-                        local ingredients = data.ingredients_4_403E56644866154088F5C3A4F2E20B55
-                        ingredients:ForEach(function(index, elem)
-                            if elem:get():ToString() == "__AP_LOCK__" then
-                                has_ap_lock = true
-                                return true
-                            end
-                        end)
-                        if has_ap_lock then
-                            print(name .. " is already disabled")
-                        else
-                            print("Disabling " .. name)
-                            ingredients[#ingredients + 1] = FString("__AP_LOCK__")
-                        end
-                    end
-                end)
-            else
-                AddHint("Failed to lock recipes", HintType.Error)
-            end
+            LockRecipes(slot_data.ItemNames)
         end
 
         local SaveGameObject = GetSaveSlot()
@@ -189,42 +152,17 @@ function connect(server, slot, password)
 
     function on_items_received(received_items)
         print("Items received: " .. #received_items)
-        local datatable = StaticFindObject("/Game/main/datatables/list_craftRecipes.list_craftRecipes")
+        local I = GetRecievedItems()
         for _, item in ipairs(received_items) do
             table.insert(item_list, item)
-            
-            local item_name = GetAPItemNameFromId(item.item)
-            if datatable:IsValid() then
-                datatable:ForEachRow(function(name, data)
-                    local result = data.result_6_893C01EE4438C4AAF7E917954BB7F448
-                    if #result < 1 then return end
-                    local fname = result[1]:ToString()
-                    local unlock_name = recipeResultToItemName[fname]
-                    if unlock_name == item_name then
-                        local non_ap_lock_items = {}
-                        local ingredients = data.ingredients_4_403E56644866154088F5C3A4F2E20B55
-                        ingredients:ForEach(function(index, elem)
-                            if elem:get():ToString() ~= "__AP_LOCK__" then
-                                table.insert(non_ap_lock_items, elem:get())
-                            end
-                        end)
-                        if #non_ap_lock_items < #ingredients then
-                            print("Enabling " .. name)
-                            ingredients:Empty()
-                            for index, non_ap_lock in ipairs(non_ap_lock_items) do
-                                ingredients[index] = non_ap_lock
-                            end
-                        else
-                            print(name .. " is already enabled")
-                        end
-                    end
-                end)
-            else
-                AddHint("Failed to unlock " .. name, HintType.Error)
+            local auto = auto_map[item.name]
+            if auto and auto.replay and item.index < I then
+                printl("Replaying " .. item.name)
+                auto.run()
             end
         end
         print("Total items received: " .. #item_list)
-        CheckAutoItem(GetRecievedItems())
+        CheckAutoItem(I)
     end
 
     function on_location_info(infos)

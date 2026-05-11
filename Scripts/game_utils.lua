@@ -412,3 +412,76 @@ function Upgrade(name)
 
     return true
 end
+
+local recipeResultToItemName = {
+    ["scrap_plastic"] = "Plastic Scrap Recipe",
+    ["scrap_metal"] = "Metal Scrap Recipe",
+    ["scrap_elec"] = "Electronic Scrap Recipe",
+    ["scrap_glass"] = "Glass Scrap Recipe",
+    ["scrap_rubber"] = "Rubber Scrap Recipe",
+    ["scrap_paper"] = "Paper Scrap Recipe",
+    ["scrap_wood"] = "Wood Scrap Recipe",
+    ["scrap_rubble"] = "Rubble Recipe",
+}
+
+function LockRecipes(item_names)
+    local datatable = StaticFindObject("/Game/main/datatables/list_craftRecipes.list_craftRecipes")
+    if datatable:IsValid() then
+        datatable:ForEachRow(function(name, data)
+            local result = data.result_6_893C01EE4438C4AAF7E917954BB7F448
+            if #result < 1 then return end
+            local fname = result[1]:ToString()
+            local item = recipeResultToItemName[fname]
+            if item and array_contains(item_names, item) then
+                local has_ap_lock = false
+                local ingredients = data.ingredients_4_403E56644866154088F5C3A4F2E20B55
+                ingredients:ForEach(function(index, elem)
+                    if elem:get():ToString() == "__AP_LOCK__" then
+                        has_ap_lock = true
+                        return true
+                    end
+                end)
+                if has_ap_lock then
+                    print(name .. " is already disabled")
+                else
+                    print("Disabling " .. name)
+                    ingredients[#ingredients + 1] = FString("__AP_LOCK__")
+                end
+            end
+        end)
+    else
+        AddHint("Failed to lock recipes", HintType.Error)
+    end
+end
+
+function UnlockRecipe(recipe_name)
+    local datatable = StaticFindObject("/Game/main/datatables/list_craftRecipes.list_craftRecipes")
+    if datatable:IsValid() then
+        datatable:ForEachRow(function(name, data)
+            local result = data.result_6_893C01EE4438C4AAF7E917954BB7F448
+            if #result < 1 then return end
+            local fname = result[1]:ToString()
+            local unlock_name = recipeResultToItemName[fname]
+            if unlock_name == recipe_name then
+                local non_ap_lock_items = {}
+                local ingredients = data.ingredients_4_403E56644866154088F5C3A4F2E20B55
+                ingredients:ForEach(function(index, elem)
+                    if elem:get():ToString() ~= "__AP_LOCK__" then
+                        table.insert(non_ap_lock_items, elem:get())
+                    end
+                end)
+                if #non_ap_lock_items < #ingredients then
+                    print("Enabling " .. name)
+                    ingredients:Empty()
+                    for index, non_ap_lock in ipairs(non_ap_lock_items) do
+                        ingredients[index] = non_ap_lock
+                    end
+                else
+                    print(name .. " is already enabled")
+                end
+            end
+        end)
+    else
+        AddHint("Failed to unlock " .. recipe_name, HintType.Error)
+    end
+end

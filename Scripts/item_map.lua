@@ -20,15 +20,19 @@ auto_map = {
 
     -- Handled by the received items to properly process the initial items received packet
     -- TODO: See if we could move it here, and then just replay it when you receive the initial packet?
-    ["Plastic Scrap Recipe"] =              { hint = HintType.Info, run = function() end },
-    ["Metal Scrap Recipe"] =                { hint = HintType.Info, run = function() end },
-    ["Electronic Scrap Recipe"] =           { hint = HintType.Info, run = function() end },
-    ["Glass Scrap Recipe"] =                { hint = HintType.Info, run = function() end },
-    ["Rubber Scrap Recipe"] =               { hint = HintType.Info, run = function() end },
-    ["Paper Scrap Recipe"] =                { hint = HintType.Info, run = function() end },
+    ["Plastic Scrap Recipe"] =              { hint = HintType.Thought, run = function() UnlockRecipe("Plastic Scrap Recipe") end, replay = true },
+    ["Metal Scrap Recipe"] =                { hint = HintType.Thought, run = function() UnlockRecipe("Metal Scrap Recipe") end, replay = true },
+    ["Electronic Scrap Recipe"] =           { hint = HintType.Thought, run = function() UnlockRecipe("Electronic Scrap Recipe") end, replay = true },
+    ["Glass Scrap Recipe"] =                { hint = HintType.Thought, run = function() UnlockRecipe("Glass Scrap Recipe") end, replay = true },
+    ["Rubber Scrap Recipe"] =               { hint = HintType.Thought, run = function() UnlockRecipe("Rubber Scrap Recipe") end, replay = true },
+    ["Paper Scrap Recipe"] =                { hint = HintType.Thought, run = function() UnlockRecipe("Paper Scrap Recipe") end, replay = true },
+    ["Wood Scrap Recipe"] =                 { hint = HintType.Thought, run = function() UnlockRecipe("Wood Scrap Recipe") end, replay = true },
+    ["Rubble Recipe"] =                     { hint = HintType.Thought, run = function() UnlockRecipe("Rubble Recipe") end, replay = true },
+
+    ["Day"] =                               { hint = HintType.Thought, run = function() have_days = have_days + 1 end, replay = true },
 
     ["Lifecrystal Signal"] = {
-        hint = HintType.Info,
+        hint = HintType.Thought,
         run = function()
             local SaveGameObject = GetSaveSlot()
             if SaveGameObject ~= nil then
