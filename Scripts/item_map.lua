@@ -156,8 +156,10 @@ function FillItemMap()
         inverse_item_map["shrimp pack"] = "shrimp"
         total = total + 1
         for k,name in pairs(locationKeys) do
-            inverse_item_map[string.lower(name)] = k
-            total = total + 1
+            if not inverse_item_map[string.lower(name)] then
+                inverse_item_map[string.lower(name)] = k
+                total = total + 1
+            end
         end
         print("Filtered down to " .. total .. " items")
     end
