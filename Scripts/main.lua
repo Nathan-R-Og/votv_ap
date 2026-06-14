@@ -44,7 +44,7 @@ function SetRecievedItems(val)
     return false
 end
 
-function GetCheckedKeyNames()
+function GetCheckedLocationNames()
     local SaveGameObject = GetSaveSlot()
     if SaveGameObject ~= nil then
         local codes = SaveGameObject.Task.dishesCode_41_1322AB5A47727AFCA04BB18608331B82
@@ -54,7 +54,7 @@ function GetCheckedKeyNames()
     return 0
 end
 
-function AddCheckedKeyName(val)
+function AddCheckedLocationName(val)
     local SaveGameObject = GetSaveSlot()
     if SaveGameObject ~= nil then
         local codes = SaveGameObject.Task.dishesCode_41_1322AB5A47727AFCA04BB18608331B82
@@ -161,11 +161,13 @@ function OnTouchProp(prop)
     local location = locationKeys[key] or locationKeys[name]
     if not location then return end
     local collected = false
-    local checkedKeynames = GetCheckedKeyNames()
-    if array_contains(checked_location_keynames, location) then
+    local checkedNames = GetCheckedLocationNames()
+    if array_contains(checked_location_names, location) then
+        print("Previously checked!")
         collected = true
-        checkedKeynames:ForEach(function(index, elem)
+        checkedNames:ForEach(function(index, elem)
             if elem:get():ToString() == keyname then
+                print("Registered on this save")
                 collected = false
                 return true
             end
@@ -174,11 +176,12 @@ function OnTouchProp(prop)
             AddHint("You already collected that item!", HintType.Warning)
         end
     else
+        print("Sending check")
         collected = SendLocation(location)
     end
 
     if collected then
-        AddCheckedKeyName(location)
+        AddCheckedLocationName(location)
         if DELETE_LOCATION_ITEMS and not preserve_items[name] then
             prop:K2_DestroyActor()
         end
@@ -394,61 +397,66 @@ function RegisterAllHooks()
         SendLocation("Light the " .. dir .. " Candle")
     end)
 
-    RegisterUniqueHook("/Game/umg/interfaces/ui_laptop.ui_laptop_C:addStoreCart", function(self, struct_store)
-        if not ap then return end
-        local name = struct_store:get().name_14_B3814BBE478D1FA0AB005BB6386C1541:ToString()
-        if name == nil then return end
-        local visual_name = item_map[name]
-        if visual_name == nil or not slot_data.ShopItems[visual_name] then return end
-        local item_id = GetAPItemIdFromName(visual_name)
-        for i=1,GetRecievedItems() do
-            if item_list[i] and item_list[i].item == item_id then return end
-        end
-        local max_amount = 0
-        local location_id = GetAPLocationIDfromName("Purchase " .. visual_name)
-        if array_contains(MissingLocations, location_id) then
-            local has_another_copy = false
-            self:get().cart:ForEach(function(index, elem)
-                if index == #self:get().cart then return true end
-                if elem:get().name_14_B3814BBE478D1FA0AB005BB6386C1541:ToString() == name then
-                    has_another_copy = true
-                    return true
-                end
-            end)
-            if not has_another_copy then return end
-        end
-        self:get().removeStoreCart(#self:get().cart - 1)
-        AddHint("You cannot buy more of that item than you need\nfor the location until you receive it", HintType.Warning)
-    end)
-    RegisterUniqueHook("/Game/objects/drone.drone_C:compileOrder", function(self)
-        print("COMPILE ORDERS")
-        local SaveSlot = GetSaveSlot()
-        if SaveSlot ~= nil then
-            local container = self:get().container
-            local container_index = container.propInventory.Index
-            local container_data = SaveSlot.GObjStack[container_index + 1].obj_11_89CC26B14C79E8F107FE6E9010A5AFC9
-            local filtered_items = {}
-            local filtered_names = {}
-            local filtered_masses = {}
-            local filtered_volumes = {}
-            container_data:ForEach(function(index, item)
-                local name = item:get().names_63_D074F50147CB91EADFFD9FB98BDF4016[1].vectors_11_89CC26B14C79E8F107FE6E9010A5AFC9[1]:ToString()
-                if name and item_map[name] and SendLocation("Purchase " .. item_map[name]) then return end
-                table.insert(filtered_items, item:get())
-                table.insert(filtered_names, container.nameData[index])
-                table.insert(filtered_masses, container.massData[index])
-                table.insert(filtered_volumes, container.volumeData[index])
-            end)
-            container_data:Empty()
-            container.nameData:Empty()
-            container.massData:Empty()
-            container.volumeData:Empty()
-            for i,v in ipairs(filtered_items) do container_data[i] = v end
-            for i,v in ipairs(filtered_names) do container.nameData[i] = v end
-            for i,v in ipairs(filtered_masses) do container.massData[i] = v end
-            for i,v in ipairs(filtered_volumes) do container.volumeData[i] = v end
-        end
-    end)
+    -- SHOP ITEM LOCATIONS HOOKS - Disabled since the compileOrder one arbitrarily (but consistently) corrupts the drone's content
+    -- RegisterUniqueHook("/Game/umg/interfaces/ui_laptop.ui_laptop_C:addStoreCart", function(self, struct_store)
+    --     if not ap then return end
+    --     local name = struct_store:get().name_14_B3814BBE478D1FA0AB005BB6386C1541:ToString()
+    --     if name == nil then return end
+    --     local visual_name = item_map[name]
+    --     if visual_name == nil or not slot_data.ShopItems[visual_name] then return end
+    --     local item_id = GetAPItemIdFromName(visual_name)
+    --     for i=1,GetRecievedItems() do
+    --         if item_list[i] and item_list[i].item == item_id then return end
+    --     end
+    --     local max_amount = 0
+    --     local location_id = GetAPLocationIDfromName("Purchase " .. visual_name)
+    --     if array_contains(MissingLocations, location_id) then
+    --         local has_another_copy = false
+    --         self:get().cart:ForEach(function(index, elem)
+    --             if index == #self:get().cart then return true end
+    --             if elem:get().name_14_B3814BBE478D1FA0AB005BB6386C1541:ToString() == name then
+    --                 has_another_copy = true
+    --                 return true
+    --             end
+    --         end)
+    --         if not has_another_copy then return end
+    --     end
+    --     self:get().removeStoreCart(#self:get().cart - 1)
+    --     AddHint("You cannot buy more of that item than you need\nfor the location until you receive it", HintType.Warning)
+    -- end)
+    -- RegisterUniqueHook("/Game/objects/drone.drone_C:compileOrder", function(self)
+    --     print("COMPILE ORDERS")
+    --     local SaveSlot = GetSaveSlot()
+    --     if SaveSlot ~= nil then
+    --         local container = self:get().container
+    --         local container_index = container.propInventory.Index
+    --         local container_data = SaveSlot.GObjStack[container_index + 1].obj_11_89CC26B14C79E8F107FE6E9010A5AFC9
+    --         local filtered_items = {}
+    --         local filtered_names = {}
+    --         local filtered_masses = {}
+    --         local filtered_volumes = {}
+    --         container_data:ForEach(function(index, item)
+    --             local real_item = item:get()
+    --             local name = real_item.names_63_D074F50147CB91EADFFD9FB98BDF4016[1].vectors_11_89CC26B14C79E8F107FE6E9010A5AFC9[1]:ToString()
+    --             if name and item_map[name] and SendLocation("Purchase " .. item_map[name]) then return end
+    --             table.insert(filtered_items, real_item)
+    --             table.insert(filtered_names, container.nameData[index])
+    --             table.insert(filtered_masses, container.massData[index])
+    --             table.insert(filtered_volumes, container.volumeData[index])
+    --         end)
+    --         container_data:Empty()
+    --         container.nameData:Empty()
+    --         container.massData:Empty()
+    --         container.volumeData:Empty()
+    --         for i,v in ipairs(filtered_items) do
+    --             print(tostring(v:IsValid()) .. "/" .. tostring(v:IsMappedToObject()) .. "/" .. v.names_63_D074F50147CB91EADFFD9FB98BDF4016[1].vectors_11_89CC26B14C79E8F107FE6E9010A5AFC9[1]:ToString())
+    --             container_data[i] = v
+    --         end
+    --         for i,v in ipairs(filtered_names) do container.nameData[i] = v end
+    --         for i,v in ipairs(filtered_masses) do container.massData[i] = v end
+    --         for i,v in ipairs(filtered_volumes) do container.volumeData[i] = v end
+    --     end
+    -- end)
 
     -- Day Looping
     RegisterUniqueHook("/Game/objects/misc/daynightCycle.daynightCycle_C:ReceiveTick", function(self, DeltaSeconds)

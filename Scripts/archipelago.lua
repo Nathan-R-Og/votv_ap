@@ -32,7 +32,7 @@ options = nil
 slot_data = nil
 completed = false
 item_list = {}
-checked_location_keynames = {}
+checked_location_names = {}
 
 itemToProps = {
     ["Progressive Sleeping Bag"] = {"sleepingbag", "sleepingbag_br", "sleepingbag_st"},
@@ -71,6 +71,10 @@ function connect(server, slot, password)
         MissingLocations = ap.missing_locations
         slot_data = slot_data_remote
         options = slot_data.options
+
+        for _, location_id in ipairs(ap.checked_locations) do
+            CheckLocation(location_id)
+        end
 
         if slot_data.Version then
             local mod_version_str = table.concat(mod_version, ".")
@@ -216,12 +220,16 @@ function connect(server, slot, password)
         print("Locations checked:" .. table.concat(locations, ", "))
         print("Checked locations: " .. table.concat(ap.checked_locations, ", "))
         for _, LocationID in ipairs(locations) do
-            CheckedLocations[LocationID] = true
-            table.insert(LocationsToCheck, LocationID)
-            local keyname = inverse_locations[GetAPItemNameFromId(LocationID)]
-            if keyname ~= nil then
-                table.insert(checked_location_keynames, keyname)
-            end
+            CheckLocation(LocationID)
+        end
+    end
+
+    function CheckLocation(location_id)
+        CheckedLocations[location_id] = true
+        table.insert(LocationsToCheck, location_id)
+        local name = GetAPNamefromLocationID(location_id)
+        if name ~= nil then
+            table.insert(checked_location_names, name)
         end
     end
 
