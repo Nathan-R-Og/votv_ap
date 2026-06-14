@@ -18,8 +18,6 @@ local fuse_debt = {}
 
 --ap day items
 have_days = 0
--- TODO: Store that somewhere in the save slot
-sold_garbage_bags = 0
 
 looking_at_location = -1
 
@@ -28,31 +26,61 @@ local last_item_failed = false
 DELETE_LOCATION_ITEMS = true
 
 function GetRecievedItems()
-    local GameMode = GetGameMode()
-    if GameMode:IsValid() then
-        --GameMode.Immortal = true
-        -- You now have the USaveGame object
-        local SaveGameObject = GameMode.saveSlot
-        if SaveGameObject:IsValid() then
-            print("SAVE I IS " .. tostring(SaveGameObject.I))
-            return SaveGameObject.I
-        end
+    local SaveGameObject = GetSaveSlot()
+    if SaveGameObject ~= nil then
+        print("SAVE I IS " .. tostring(SaveGameObject.I))
+        return SaveGameObject.I
     end
     return 0
 end
 
 function SetRecievedItems(val)
-    local GameMode = GetGameMode()
-    if GameMode:IsValid() then
-        --GameMode.Immortal = true
-        -- You now have the USaveGame object
-        local SaveGameObject = GameMode.saveSlot
-        if SaveGameObject:IsValid() then
-            print("SAVE I IS " .. tostring(SaveGameObject.I))
-            SaveGameObject.I = val
-            print("SAVE I IS NOW " .. tostring(SaveGameObject.I))
-            return true
-        end
+    local SaveGameObject = GetSaveSlot()
+    if SaveGameObject ~= nil then
+        SaveGameObject.I = val
+        print("SAVE I IS NOW " .. tostring(SaveGameObject.I))
+        return true
+    end
+    return false
+end
+
+function GetCheckedKeyNames()
+    local SaveGameObject = GetSaveSlot()
+    if SaveGameObject ~= nil then
+        local codes = SaveGameObject.Task.dishesCode_41_1322AB5A47727AFCA04BB18608331B82
+        print("SAVE KEYNAME INDEX IS " .. #codes)
+        return codes
+    end
+    return 0
+end
+
+function AddCheckedKeyName(val)
+    local SaveGameObject = GetSaveSlot()
+    if SaveGameObject ~= nil then
+        local codes = SaveGameObject.Task.dishesCode_41_1322AB5A47727AFCA04BB18608331B82
+        codes[#codes + 1] = FString(val)
+        print("SAVE KEYNAME INDEX IS NOW " .. #codes)
+        return true
+    end
+    return false
+end
+
+function GetSoldGarbageBags()
+    local SaveGameObject = GetSaveSlot()
+    if SaveGameObject ~= nil then
+        local amount = SaveGameObject.Task.fails_51_26566E3641B156F3F6AB08B9355882ED
+        print("SAVE SOLD TRASH BAGS IS " .. tostring(amount))
+        return amount
+    end
+    return 0
+end
+
+function SetSoldGarbageBags(val)
+    local SaveGameObject = GetSaveSlot()
+    if SaveGameObject ~= nil then
+        SaveGameObject.Task.fails_51_26566E3641B156F3F6AB08B9355882ED = val
+        print("SAVE I IS NOW " .. tostring(SaveGameObject.Task.fails_51_26566E3641B156F3F6AB08B9355882ED))
+        return true
     end
     return false
 end
@@ -66,6 +94,7 @@ function CheckAutoItem(i)
         if auto_item ~= nil then
             AddHint(item_name .. " from " .. ap:get_player_alias(next_item.player), auto_item.hint)
             auto_item.run()
+            CheckShopAndControlsUnlock(item_name, true)
             return CheckAutoItem(i+1)
         end
     end
@@ -107,7 +136,13 @@ function GetNextItem()
                     return
                 end
             end
+            CheckShopAndControlsUnlock(item_name, true)
             CheckAutoItem(i+1)
+        end
+
+        local laptop = FindFirstOf("ui_laptop_C")
+        if laptop:IsValid() then
+            laptop:genStore()
         end
     end
 end
@@ -119,13 +154,37 @@ RegisterKeyBind(Key.F9, function()
 end)
 
 function OnTouchProp(prop)
-    local key = prop:get().Key:ToString()
+    local key = prop.Key:ToString()
     -- Prevent items given by AP from triggering checks
     if string.startswith(key, "APItem") then return end
-    local name = prop:get().Name:ToString()
+    local name = prop.Name:ToString()
     local location = locationKeys[key] or locationKeys[name]
-    if location and SendLocation(location) and DELETE_LOCATION_ITEMS and not preserve_items[name] then
-        prop:get():K2_DestroyActor()
+    if not location then return end
+    local collected = false
+    local checkedKeynames = GetCheckedKeyNames()
+    if array_contains(checked_location_keynames, location) then
+        collected = true
+        checkedKeynames:ForEach(function(index, elem)
+            if elem:get():ToString() == keyname then
+                collected = false
+                return true
+            end
+        end)
+        if collected then
+            AddHint("You already collected that item!", HintType.Warning)
+        end
+    else
+        collected = SendLocation(location)
+    end
+
+    if collected then
+        AddCheckedKeyName(location)
+        if DELETE_LOCATION_ITEMS and not preserve_items[name] then
+            prop:K2_DestroyActor()
+        end
+    elseif lock_until_ap_item[name] and array_contains(MissingLocations, GetAPLocationIDfromName(location)) then
+        prop:K2_DestroyActor()
+        AddHint("You're not allowed to get this item until you receive it!", HintType.Error)
     end
 end
 
@@ -179,21 +238,22 @@ function ReachGoal()
 end
 
 function RegisterAllHooks()
-    RegisterUniqueHook("/Game/objects/prop.prop_C:playerTryToGrab", function(self, player, collected)
-        OnTouchProp(self)
+    RegisterUniqueHook("/Game/objects/prop.prop_C:playerGrabbed_pre", function(self, player, collected)
+        OnTouchProp(self:get())
     end)
-    RegisterUniqueHook("/Game/objects/prop.prop_C:playerTryToHold", function(self, player, collected)
-        OnTouchProp(self)
+    RegisterUniqueHook("/Game/objects/prop.prop_C:playerHoldPost", function(self, player, collected)
+        OnTouchProp(self:get())
     end)
     RegisterUniqueHook("/Game/objects/prop.prop_C:playerTryToCollect", function(self, player, collected)
-        OnTouchProp(self)
+        OnTouchProp(self:get())
     end)
     RegisterUniqueHook("/Game/objects/prop.prop_C:player_use", function(self, player, collected)
-        OnTouchProp(self)
+        OnTouchProp(self:get())
     end)
     RegisterUniqueHook("/Game/objects/prop.prop_C:GetName", function(self, DisplayName, propname)
         local key = self:get().Key:ToString()
-        local location = locationKeys[key]
+        local name = self:get().Name:ToString()
+        local location = locationKeys[key] or locationKeys[name]
         if location ~= nil then
             print("Found clientside location: " .. location)
             local id = GetAPLocationIDfromName(location)
@@ -218,11 +278,20 @@ function RegisterAllHooks()
         if SaveSlot ~= nil then
             local container_index = self:get().container.propInventory.Index
             local container_data = SaveSlot.GObjStack[container_index + 1].obj_11_89CC26B14C79E8F107FE6E9010A5AFC9
+            local sold_garbage_bags = GetSoldGarbageBags()
             container_data:ForEach(function(_, item)
                 local classname = item:get().class_3_5267A5ED44C89294283B8CBBEC685F8A:GetFName():ToString()
+                print(classname)
                 if classname == "prop_box_C" then
                     item:get().signals_45_CE5AB8DE4026B6660BF9A28FA6690AD5:ForEach(function(_, signal)
-                        if #signal:get().name_15_4DC53B564EDE34E0A8A16A92BD26B4AD:ToString() > 0 then
+                        local sold = false
+                        SaveSlot.soldSignals:ForEach(function(_, sold)
+                            if sold:get():ToString() == signal:get().id_26_DD9E8AA643A0BF449C8D1E8993752C16:ToString() then
+                                sold = true
+                                return true
+                            end
+                        end)
+                        if not sold and #signal:get().name_15_4DC53B564EDE34E0A8A16A92BD26B4AD:ToString() > 0 then
                             local level = signal:get().level_8_986E7CB3437BFD9FC9F6DF824C794EA8
                             if options.BackwardsSignalLevels == 1 then
                                 for i=0,level do
@@ -244,10 +313,10 @@ function RegisterAllHooks()
                 SendNextLocation("Sell 24 Full Trash Bags")
                 sold_garbage_bags = sold_garbage_bags - 24
             end
+            SetSoldGarbageBags(sold_garbage_bags)
         end
     end)
     RegisterUniqueHook("/Game/objects/droneSellLocation.droneSellLocation_C:sell", function(self, Points, responseEmail, checked, soldAmountSig, sellList)
-        print("Sold: " .. sellList:get():ToString())
         CheckDailyTask()
     end)
 
@@ -269,7 +338,7 @@ function RegisterAllHooks()
     RegisterUniqueHook("/Game/objects/generator.generator_C:player_use", function(self)
         local index = self:get().Index
         local cycle = self:get().cycle
-        if generatorCycles[index] ~= nil and generatorCycles[index] < 90 and cycle == 100 then
+        if generatorCycles[index] ~= nil and generatorCycles[index] < 100 and cycle == 100 then
             SendNextLocation("Repair Transformer")
         end
         generatorCycles[index] = cycle
@@ -289,53 +358,95 @@ function RegisterAllHooks()
     end)
 
     for _, variety in ipairs({"shri", "mush", "pepp", "pine"}) do
-        RegisterUniqueHook("/Game/objects/prop_cfood_pizzad_" .. variety .. ".prop_cfood_pizzad_" .. variety .. "_C:cooked", function(self)
+        RegisterUniqueHook("/Game/objects/prop_cfood_pizzad_" .. variety .. ".prop_cfood_pizzad_" .. variety .. "_C:cookItem", function(self)
             SendLocation("Bake a Pizza")
         end)
     end
-    RegisterUniqueHook("/Game/objects/prop_cfood_breadmold.prop_cfood_breadmold_C:cooked", function(self)
+    RegisterUniqueHook("/Game/objects/prop_cfood_breadmold.prop_cfood_breadmold_C:cookItem", function(self)
         SendLocation("Bake Bread")
     end)
-    RegisterUniqueHook("/Game/objects/prop_cookingFood_cookietray.prop_cookingFood_cookietray_C:cooked", function(self)
+    RegisterUniqueHook("/Game/objects/prop_cookingFood_cookietray.prop_cookingFood_cookietray_C:cookItem", function(self)
         SendLocation("Bake Cookies")
     end)
 
-    RegisterUniqueHook("/Game/objects/drone.drone_C:sendShop", function(self, order)
-        local orderreal = order:get().items_3_C1FD2F664A7CE19ACFEB6DA0AF4F9927
-        local filtered_order = {}
-        orderreal:ForEach(function(index, item)
-            local item_name = item:get().name_14_B3814BBE478D1FA0AB005BB6386C1541:ToString()
-            if item_name == nil then
-                return
-            end
-            if SendLocation("Purchase ".. item_map[item_name]) then
-                return
-            end
-            table.insert(filtered_order, item:get())
-        end)
-        orderreal:Empty()
-        for index, item in ipairs(filtered_order) do
-            orderreal[index] = item
+    RegisterUniqueHook("/Game/objects/rockcandle.rockcandle_C:attemptIgnite", function(self)
+        local pos = self:get():K2_GetActorLocation()
+        local angle = (math.atan(pos.Y, pos.X) * 180 / math.pi + 360) % 360
+        local dir
+        print(self:get():GetFName():ToString() .. "/" .. pos.X .. "/" .. pos.Y .. ": " .. angle)
+        if angle < 23 or angle >= 338 then
+            dir = "East"
+        elseif angle < 68 then
+            dir = "Southeast"
+        elseif angle < 113 then
+            dir = "South"
+        elseif angle < 158 then
+            dir = "Southwest"
+        elseif angle < 203 then
+            dir = "West"
+        elseif angle < 248 then
+            dir = "Northwest"
+        elseif angle < 293 then
+            dir = "North"
+        elseif angle < 338 then
+            dir = "Northeast"
         end
+        SendLocation("Light the " .. dir .. " Candle")
     end)
 
-    RegisterUniqueHook("/Game/umg/interfaces/ui_laptop.ui_laptop_C:makeAnOrder", function(self, NewItem, automatic)
-        local SaveGameObject = GetSaveSlot()
-        if SaveGameObject and #SaveGameObject.orders > 0 then
-            local last_order = SaveGameObject.orders[#SaveGameObject.orders]
-            local order_items = last_order.items_3_C1FD2F664A7CE19ACFEB6DA0AF4F9927
-            local filtered_order = {}
-            order_items:ForEach(function(index, item)
-                local item_name = item:get().name_14_B3814BBE478D1FA0AB005BB6386C1541:ToString()
-                if item_name == nil then return end
-                if SendLocation("Purchase " .. item_map[item_name]) then return end
-                table.insert(filtered_order, item:get())
+    RegisterUniqueHook("/Game/umg/interfaces/ui_laptop.ui_laptop_C:addStoreCart", function(self, struct_store)
+        if not ap then return end
+        local name = struct_store:get().name_14_B3814BBE478D1FA0AB005BB6386C1541:ToString()
+        if name == nil then return end
+        local visual_name = item_map[name]
+        if visual_name == nil or not slot_data.ShopItems[visual_name] then return end
+        local item_id = GetAPItemIdFromName(visual_name)
+        for i=1,GetRecievedItems() do
+            if item_list[i] and item_list[i].item == item_id then return end
+        end
+        local max_amount = 0
+        local location_id = GetAPLocationIDfromName("Purchase " .. visual_name)
+        if array_contains(MissingLocations, location_id) then
+            local has_another_copy = false
+            self:get().cart:ForEach(function(index, elem)
+                if index == #self:get().cart then return true end
+                if elem:get().name_14_B3814BBE478D1FA0AB005BB6386C1541:ToString() == name then
+                    has_another_copy = true
+                    return true
+                end
             end)
-            print("Order has size " .. #order_items .. ", filtering down to " .. #filtered_order)
-            order_items:Empty()
-            for index, item in ipairs(filtered_order) do
-                order_items[index] = item
-            end
+            if not has_another_copy then return end
+        end
+        self:get().removeStoreCart(#self:get().cart - 1)
+        AddHint("You cannot buy more of that item than you need\nfor the location until you receive it", HintType.Warning)
+    end)
+    RegisterUniqueHook("/Game/objects/drone.drone_C:compileOrder", function(self)
+        print("COMPILE ORDERS")
+        local SaveSlot = GetSaveSlot()
+        if SaveSlot ~= nil then
+            local container = self:get().container
+            local container_index = container.propInventory.Index
+            local container_data = SaveSlot.GObjStack[container_index + 1].obj_11_89CC26B14C79E8F107FE6E9010A5AFC9
+            local filtered_items = {}
+            local filtered_names = {}
+            local filtered_masses = {}
+            local filtered_volumes = {}
+            container_data:ForEach(function(index, item)
+                local name = item:get().names_63_D074F50147CB91EADFFD9FB98BDF4016[1].vectors_11_89CC26B14C79E8F107FE6E9010A5AFC9[1]:ToString()
+                if name and item_map[name] and SendLocation("Purchase " .. item_map[name]) then return end
+                table.insert(filtered_items, item:get())
+                table.insert(filtered_names, container.nameData[index])
+                table.insert(filtered_masses, container.massData[index])
+                table.insert(filtered_volumes, container.volumeData[index])
+            end)
+            container_data:Empty()
+            container.nameData:Empty()
+            container.massData:Empty()
+            container.volumeData:Empty()
+            for i,v in ipairs(filtered_items) do container_data[i] = v end
+            for i,v in ipairs(filtered_names) do container.nameData[i] = v end
+            for i,v in ipairs(filtered_masses) do container.massData[i] = v end
+            for i,v in ipairs(filtered_volumes) do container.volumeData[i] = v end
         end
     end)
 
@@ -397,6 +508,11 @@ function RegisterAllHooks()
     FillItemMap()
 
     AddHint("Remember to connect to Archipelago!", HintType.Thought)
+    LoopAsync(30000, function()
+        if ap then return true end
+        AddHint("Remember to connect to Archipelago!", HintType.Thought)
+        return false
+    end)
 end
 
 RegisterKeyBind(Key.F8, function()
@@ -408,8 +524,24 @@ end)
 RegisterKeyBind(Key.F7, function()
     ExecuteInGameThread(function()
         AddHint("Debug shortcut", HintType.Warning)
-        auto_map["Plastic Scrap Recipe"].run()
-        auto_map["Day"].run()
+        --auto_map["Ragdoll Trap"].run()
+        --LockRecipes({"Metal Scrap Recipe"})
+        --UnlockRecipe("Metal Scrap Recipe")
+        --complex_item_map["Bunker Keycard"]()
+        local pos = GetPawn():K2_GetActorLocation()
+        print(pos.X .. "/" .. pos.Y .. "/" .. pos.Z)
+
+        local storeDatatable = StaticFindObject("/Game/main/datatables/list_store.list_store")
+        local propDatatable = StaticFindObject("/Game/main/datatables/list_props.list_props")
+        if storeDatatable:IsValid() and propDatatable:IsValid() then
+            result = "\n"
+            storeDatatable:ForEachRow(function(name, data)
+                result = result .. "    \"" .. propDatatable:FindRow(name).displayName_8_FE83ADBF40AA162942FCE589F5806DD2:ToString() .. "\": ShopItem(" .. data.price_11_BE3AF83E446D1C3BDEA63BA50CFE096C .. ", " .. data.size_30_C3131BE84D89E0C389F1DB9557E08D74 .. ", \"" .. name .. "\", IC.filler"
+                if data.achievementUnlock_38_883E827740DCBD0E996CF9B74B755175:ToString() ~= "None" then result = result .. ", \"" .. data.achievementUnlock_38_883E827740DCBD0E996CF9B74B755175:ToString() .. "\"" end
+                result = result .. "),\n"
+            end)
+            print(result)
+        end
     end)
 end)
 

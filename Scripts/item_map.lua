@@ -1,23 +1,25 @@
-auto_map = {
-    ["Progressive Processing Level"] =      { hint = HintType.Info, run = function() Upgrade("processLvl") end },
-    ["Progressive Processing Speed"] =      { hint = HintType.Info, run = function() Upgrade("processSpeed") end },
-    ["Progressive Download Speed"] =        { hint = HintType.Info, run = function() Upgrade("downloadSpd") end },
-    ["Progressive Cursor Drift"] =          { hint = HintType.Info, run = function() Upgrade("coordDrift") end },
-    ["Progressive Cursor Speed"] =          { hint = HintType.Info, run = function() Upgrade("coordMovementSpeed") end },
-    ["Progressive Ping Speed"] =            { hint = HintType.Info, run = function() Upgrade("coordPingSpeed") end },
-    ["Progressive Ping Cooldown"] =         { hint = HintType.Info, run = function() Upgrade("coordCooldown") end },
-    ["Progressive Coordinate Speed"] =      { hint = HintType.Info, run = function() Upgrade("coordRadarSpeed") end },
-    ["Progressive Radar History"] =         { hint = HintType.Info, run = function() Upgrade("radarHist") end },
-    ["Progressive Radar Speed"] =           { hint = HintType.Info, run = function() Upgrade("radar") end },
-    ["Progressive Breaker Time"] =          { hint = HintType.Info, run = function() Upgrade("compTime") end },
-    ["Progressive Detector Quality"] =      { hint = HintType.Info, run = function() Upgrade("detecQual") end },
-    ["Progressive Detector Strength"] =     { hint = HintType.Info, run = function() Upgrade("scanner") end },
-    ["Progressive Detector Frequency"] =    { hint = HintType.Info, run = function() Upgrade("scannerFr") end },
+item_to_upgrade = {
+    ["Progressive Processing Level"] = "processLvl",
+    ["Progressive Processing Speed"] = "processSpeed",
+    ["Progressive Download Speed"] = "downloadSpd",
+    ["Progressive Cursor Drift"] = "coordDrift",
+    ["Progressive Cursor Speed"] = "coordMovementSpeed",
+    ["Progressive Ping Speed"] = "coordPingSpeed",
+    ["Progressive Ping Cooldown"] = "coordCooldown",
+    ["Progressive Coordinate Speed"] = "coordRadarSpeed",
+    ["Progressive Radar History"] = "radarHist",
+    ["Progressive Radar Speed"] = "radar",
+    ["Progressive Breaker Time"] = "compTime",
+    ["Progressive Detector Quality"] = "detecQual",
+    ["Progressive Detector Strength"] = "scanner",
+    ["Progressive Detector Frequency"] = "scannerFr",
     -- Unused
-    ["Progressive Filter Size"] =           { hint = HintType.Info, run = function() Upgrade("downloadFiltSize") end },
-    ["Progressive Server Stability"] =      { hint = HintType.Info, run = function() Upgrade("serverStability") end },
-    ["Progressive Transformer Stability"] = { hint = HintType.Info, run = function() Upgrade("transformer") end },
+    ["Progressive Filter Size"] = "downloadFiltSize",
+    ["Progressive Server Stability"] = "serverStability",
+    ["Progressive Transformer Stability"] = "transformer"
+}
 
+auto_map = {
     -- Handled by the received items to properly process the initial items received packet
     -- TODO: See if we could move it here, and then just replay it when you receive the initial packet?
     ["Plastic Scrap Recipe"] =              { hint = HintType.Thought, run = function() UnlockRecipe("Plastic Scrap Recipe") end, replay = true },
@@ -44,19 +46,80 @@ auto_map = {
         hint = HintType.Info,
         run = function()
             local Gamemode = GetGameMode()
-            if Gamemode ~= nil then
+            if Gamemode:IsValid() then
                 Gamemode:AddPoints(options.BonusPointsAmount)
             end
         end
     },
 
+    ["Ragdoll Trap"] = { hint = HintType.Error, run = function() MakePlayerRagdoll() end },
+    ["Breaker Trap"] = {
+        hint = HintType.Error,
+        run = function()
+            local Gamemode = GetGameMode()
+            if Gamemode:IsValid() then
+                Gamemode.eventer.event_solar:runTrigger(Gamemode, 0)
+            end
+        end
+    },
+    ["Dead Flashlight Trap"] = {
+        hint = HintType.Error,
+        run = function()
+            local SaveGameObject = GetSaveSlot()
+            if SaveGameObject ~= nil then
+                SaveGameObject.battery = 0
+            end
+        end
+    },
+    ["Debug TP Trap"] = {
+        hint = HintType.Error,
+        run = function()
+            local Gamemode = GetGameMode()
+            if Gamemode:IsValid() then
+                Gamemode:debugtp()
+            end
+        end
+    },
+    ["Flat Tire Trap"] = {
+        hint = HintType.Error,
+        run = function()
+            local Gamemode = GetGameMode()
+            if Gamemode:IsValid() then
+                Gamemode.car:damageWheel(0, 100, Gamemode.car.frontWheel_R)
+            end
+        end
+    },
     ["Drunk Trap"] = {
         hint = HintType.Error,
         run = function()
-            
+            local beer = SpawnSomething("/Game/objects/prop_snack_beer.prop_snack_beer_C")
+            local Pawn = GetPawn()
+            if beer:IsValid() and Pawn:IsValid() then
+                beer:openBottle()
+                beer:eat(Pawn, true)
+                beer:eat(Pawn, true)
+                beer:eat(Pawn, true)
+                beer:eat(Pawn, true)
+                beer:K2_DestroyActor()
+            end
         end
     },
+    ["Points Fine Trap"] = {
+        hint = HintType.Error,
+        run = function()
+            local Gamemode = GetGameMode()
+            if Gamemode:IsValid() then
+                Gamemode:AddPoints(-100)
+            end
+        end
+    },
+
+    ["Victory"] = { hint = HintType.Info, run = function() end }
 }
+
+for k,v in pairs(item_to_upgrade) do
+    auto_map[k] = { hint = HintType.Info, run = function() Upgrade(v) end }
+end
 
 complex_item_map = {
     ["Progressive Sleeping Bag"] = function()
@@ -98,6 +161,7 @@ complex_item_map = {
         local Pawn = GetPawn()
         local blueprint = SpawnSomething("/Game/objects/prop_blueprint_kerfurOmega.prop_blueprint_kerfurOmega_C")
         if Pawn:IsValid() and blueprint:IsValid() then
+            blueprint.Key = FName("APItem")
             Pawn:putObjectInventory2(blueprint, false, {})
         end
     end,
@@ -122,6 +186,7 @@ complex_item_map = {
         local Pawn = GetPawn()
         local blueprint = SpawnSomething("/Game/objects/prop_sskull.prop_sskull_C")
         if Pawn:IsValid() and blueprint:IsValid() then
+            blueprint.Key = FName("APItem")
             Pawn:putObjectInventory2(blueprint, false, {})
         end
     end
@@ -140,7 +205,9 @@ function FillItemMap()
             local name = v.displayName_8_FE83ADBF40AA162942FCE589F5806DD2:ToString()
 
             -- Special cases
-            if k == "axe" then name = "Axe" end
+            if k == "lig" then name = "" end
+            if k == "ligo" then name = "" end
+            if k == "radio_n" then name = "" end
             if k == "Blueprint_1" then name = "Radioactive Capsule Blueprint" end
             if k == "animalhead_0" then name = "Deer Skull" end
 
@@ -156,7 +223,7 @@ function FillItemMap()
         inverse_item_map["shrimp pack"] = "shrimp"
         total = total + 1
         for k,name in pairs(locationKeys) do
-            if not inverse_item_map[string.lower(name)] then
+            if inverse_item_map[string.lower(name)] == nil then
                 inverse_item_map[string.lower(name)] = k
                 total = total + 1
             end

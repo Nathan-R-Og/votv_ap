@@ -49,11 +49,10 @@ function GetDNC()
 end
 
 function SpawnSomething(name)
+    print("Attempting to spawn " .. name)
     local Class = StaticFindObject(name)
-    if Class:IsValid() then
-        local World = GetWorld()
-        local FirstPlayerController = UEHelpers:GetPlayerController()
-        local Pawn = FirstPlayerController.Pawn
+    local Pawn = GetPawn()
+    if Class:IsValid() and Pawn:IsValid() then
         local Location = Pawn:K2_GetActorLocation()
         local Rotation = Pawn:K2_GetActorRotation()
         local SpawnedActor = World:SpawnActor(Class, Location, Rotation)
@@ -269,6 +268,11 @@ function MakePlayerUnableToStash()
     end
 end
 
+function MakePlayerRagdoll()
+    local Pawn = GetPawn()
+    Pawn.ragdollMode(true, false, false)
+end
+
 --trap ; make player reset radio tower
 function MakePlayerLoseRadioTower()
     local dnc = StaticFindObject("/Game/objects/radiotower.radiotower_C")
@@ -332,7 +336,7 @@ HintType = {
 function AddHint(text, type)
     local GameMode = GetGameMode()
     if GameMode:IsValid() then
-        GameMode:addHint(FText(text), type)
+        GameMode['Add Hint from Gamemode'](GameMode, FText(text), type, false)
     end
 end
 
@@ -341,6 +345,7 @@ function GiveItem(itemname, transform)
     local Pawn = GetPawn()
     if GameMode:IsValid() and Pawn:IsValid() then
         local out = {}
+        print("Giving " .. itemname)
         GameMode:spawnPropThroughGamemode(
             FName(itemname),
             { ["Translation"] = Pawn:K2_GetActorLocation(), ["Scale3D"] = { ["X"] = 1.0, ["Y"] = 1.0, ["Z"] = 1.0 } },
@@ -423,7 +428,6 @@ local recipeResultToItemName = {
     ["scrap_wood"] = "Wood Scrap Recipe",
     ["scrap_rubble"] = "Rubble Recipe",
 }
-
 function LockRecipes(item_names)
     local datatable = StaticFindObject("/Game/main/datatables/list_craftRecipes.list_craftRecipes")
     if datatable:IsValid() then
@@ -432,20 +436,13 @@ function LockRecipes(item_names)
             if #result < 1 then return end
             local fname = result[1]:ToString()
             local item = recipeResultToItemName[fname]
-            if item and array_contains(item_names, item) then
-                local has_ap_lock = false
-                local ingredients = data.ingredients_4_403E56644866154088F5C3A4F2E20B55
-                ingredients:ForEach(function(index, elem)
-                    if elem:get():ToString() == "__AP_LOCK__" then
-                        has_ap_lock = true
-                        return true
-                    end
-                end)
-                if has_ap_lock then
+            if item and item_names[item] then
+                local blueprint = data.blueprint_9_1946A61745B0008C0F2F268F1D73DB38:ToString()
+                if string.startswith(blueprint, "__APLOCK__") then
                     print(name .. " is already disabled")
                 else
-                    print("Disabling " .. name)
-                    ingredients[#ingredients + 1] = FString("__AP_LOCK__")
+                    print("Disabling " .. name .. " recipe")
+                    data.blueprint_9_1946A61745B0008C0F2F268F1D73DB38 = FString("__APLOCK__" .. blueprint)
                 end
             end
         end)
@@ -463,19 +460,10 @@ function UnlockRecipe(recipe_name)
             local fname = result[1]:ToString()
             local unlock_name = recipeResultToItemName[fname]
             if unlock_name == recipe_name then
-                local non_ap_lock_items = {}
-                local ingredients = data.ingredients_4_403E56644866154088F5C3A4F2E20B55
-                ingredients:ForEach(function(index, elem)
-                    if elem:get():ToString() ~= "__AP_LOCK__" then
-                        table.insert(non_ap_lock_items, elem:get())
-                    end
-                end)
-                if #non_ap_lock_items < #ingredients then
-                    print("Enabling " .. name)
-                    ingredients:Empty()
-                    for index, non_ap_lock in ipairs(non_ap_lock_items) do
-                        ingredients[index] = non_ap_lock
-                    end
+                local blueprint = data.blueprint_9_1946A61745B0008C0F2F268F1D73DB38:ToString()
+                if string.startswith(blueprint, "__APLOCK__") then
+                    print("Enabling " .. name .. " recipe")
+                    data.blueprint_9_1946A61745B0008C0F2F268F1D73DB38 = FString(string.sub(blueprint, string.len("__APLOCK__") + 1))
                 else
                     print(name .. " is already enabled")
                 end
@@ -483,5 +471,42 @@ function UnlockRecipe(recipe_name)
         end)
     else
         AddHint("Failed to unlock " .. recipe_name, HintType.Error)
+    end
+end
+
+function UnlockShopItems(props, show_hint)
+    local storeDatatable = StaticFindObject("/Game/main/datatables/list_store.list_store")
+    if storeDatatable:IsValid() then
+        storeDatatable:ForEachRow(function(name, data)
+            local achievement = data.achievementUnlock_38_883E827740DCBD0E996CF9B74B755175:ToString()
+            if array_contains(props, name) then
+                if string.startswith(achievement, "__APLOCK__") then
+                    print("Enabling " .. name .. " in shop")
+                    data.achievementUnlock_38_883E827740DCBD0E996CF9B74B755175 = FName(string.sub(achievement, string.len("__APLOCK__") + 1))
+                else
+                    print(name .. " is already enabled")
+                end
+            end
+        end)
+        if show_hint then
+            AddHint("Shop item unlocked", HintType.Thought)
+        end
+    else
+        AddHint("Failed to unlock shop item", HintType.Error)
+    end
+end
+
+function EnableUpgradeControls(upgrade, show_hint)
+    print("Enabling controls of " .. upgrade)
+    local laptop = FindFirstOf("ui_laptop_C")
+    if laptop:IsValid() then
+        local compName = upgradeFullNames[upgrade][2]
+        laptop[compName].button_upgDown:SetVisibility(0) -- Visible
+        laptop[compName].button_upgUp:SetVisibility(0) -- Visible
+        if show_hint then
+            AddHint("Upgrade controls restored", HintType.Thought)
+        end
+    else
+        AddHint("Failed to enable upgrade controls", HintType.Error)
     end
 end

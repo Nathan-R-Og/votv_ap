@@ -18,19 +18,30 @@ require("utils")
 local game_name = "Voices of the Void"
 local items_handling = AP.Permission.AUTO_ENABLED  -- full remote
 local client_version = {0, 6, 7}
-local mod_version = {0, 0, 2}
+local mod_version = {0, 3, 0}
 local message_format = AP.RenderFormat.TEXT
 ---@type APClient
 ap = nil
 local LocationsToCheck = {}
-local CheckedLocations = {}
 local LocationsToScout = {}
 ScoutedLocations = {}
 MissingLocations = {}
+CheckedLocations = {}
 
 options = nil
+slot_data = nil
 completed = false
 item_list = {}
+checked_location_keynames = {}
+
+itemToProps = {
+    ["Progressive Sleeping Bag"] = {"sleepingbag", "sleepingbag_br", "sleepingbag_st"},
+    ["Progressive Camera"] = {"cam_h_0", "cam_h_1", "cam_h_2"},
+    ["Scuba Gear"] = {"scuba", "scuba_t"},
+    ["Kerfur"] = {"kerfus", "kerfus_0", "kerfus_1", "kerfus_2"},
+    ["Blue Kerfur"] = {"kerfus", "kerfus_0", "kerfus_1", "kerfus_2"},
+    ["Half Hook"] = {"hook", "hook_h"},  -- We need to disable the full hook and single hook as well
+}
 
 function connect(server, slot, password)
     function on_socket_connected()
@@ -38,6 +49,7 @@ function connect(server, slot, password)
     end
 
     function on_socket_error(msg)
+        print(msg)
         AddHint("Socket error: " .. msg, HintType.Error)
     end
 
@@ -51,12 +63,13 @@ function connect(server, slot, password)
         ap:ConnectSlot(slot, password, items_handling, {"Lua-APClientPP"}, client_version)
     end
 
-    function on_slot_connected(slot_data)
+    function on_slot_connected(slot_data_remote)
         AddHint("Slot connected", HintType.Info)
         ap:ConnectUpdate(nil, {"Lua-APClientPP"})
         print("Locations checked: " .. table.concat(ap.checked_locations, ", "))
         print("Locations missing: " .. table.concat(ap.missing_locations, ", "))
         MissingLocations = ap.missing_locations
+        slot_data = slot_data_remote
         options = slot_data.options
 
         if slot_data.Version then
@@ -64,24 +77,25 @@ function connect(server, slot, password)
             local ap_version_str = table.concat(slot_data.Version, ".")
             local suffix = " (Mod: " .. ap_version_str .. ", AP: " .. ap_version_str .. ")"
             if slot_data.Version[1] ~= mod_version[1] then
-                AddHint("Major version difference with the AP!!" .. suffix, HintType.Error)
+                AddHint("Major version difference with the apworld!!" .. suffix, HintType.Error)
             elseif slot_data.Version[2] ~= mod_version[2] then
-                AddHint("Minor version difference with the AP!" .. suffix, HintType.Warning)
+                AddHint("Minor version difference with the apworld!" .. suffix, HintType.Warning)
             elseif slot_data.Version[3] ~= mod_version[3] then
                 -- AddHint("Revision difference with the AP" .. suffix, HintType.Info)
             end
         end
 
+        local laptop = FindFirstOf("ui_laptop_C")
         if options.UpgradesAsItems >= 1 then
             print("UpgradeAsItems: " .. options.UpgradesAsItems)
-            local laptop = FindFirstOf("ui_laptop_C")
             if laptop == nil then
-                AddHint("Couldn't disable upgrade controls!", HintType.Error)
+                AddHint("Failed to disable upgrade controls", HintType.Error)
             else
-                local upgrades = {"downloadSpd", "processLvl", "processSpeed", "coordDrift", "coordPingSpeed", "coordMovementSpeed", "coordCooldown", "scanner"}
-                if options.UpgradesAsItems == 2 then
-                    for _, upg in ipairs({"coordRadarSpeed", "radarHist", "radar", "compTime", "detecQual", "scannerFr"}) do
-                        table.insert(upgrades, upg)
+                local upgrades = {}
+                for name, _ in pairs(slot_data.ItemNames) do
+                    local upgrade = item_to_upgrade[name]
+                    if upgrade then
+                        table.insert(upgrades, upgrade)
                     end
                 end
                 print("Disabling controls of " .. table.concat(upgrades, ", "))
@@ -97,52 +111,45 @@ function connect(server, slot, password)
         local propDatatable = StaticFindObject("/Game/main/datatables/list_props.list_props")
         if storeDatatable:IsValid() and propDatatable:IsValid() then
             local propAsItems = {}
-            if array_contains(slot_data.ItemNames, "Progressive Sleeping Bag") then
-                table.insert(propAsItems, "sleepingbag")
-                table.insert(propAsItems, "sleepingbag_br")
-                table.insert(propAsItems, "sleepingbag_st")
-            end
-            if array_contains(slot_data.ItemNames, "Progressive Camera") then
-                table.insert(propAsItems, "cam_h_0")
-                table.insert(propAsItems, "cam_h_1")
-                table.insert(propAsItems, "cam_h_2")
-            end
-            if array_contains(slot_data.ItemNames, "Scuba Gear") then
-                table.insert(propAsItems, "scuba")
-                table.insert(propAsItems, "scuba_t")
-            end
-            if array_contains(slot_data.ItemNames, "Kerfur") or array_contains(slot_data.ItemNames, "Blue Kerfur") then
-                table.insert(propAsItems, "kerfus")
-                table.insert(propAsItems, "kerfus_0")
-                table.insert(propAsItems, "kerfus_1")
-                table.insert(propAsItems, "kerfus_2")
-            end
             propDatatable:ForEachRow(function(name, data)
-                for _, dname in ipairs(slot_data.ItemNames) do
-                    if string.lower(data.displayName_8_FE83ADBF40AA162942FCE589F5806DD2:ToString()) == string.lower(dname) then
-                        table.insert(propAsItems, name)
+                for item, _ in pairs(slot_data.ItemNames) do
+                    if not slot_data.ShopItems[item] and string.lower(data.displayName_8_FE83ADBF40AA162942FCE589F5806DD2:ToString()) == string.lower(item) then
+                        if not itemToProps[item] then itemToProps[item] = {} end
+                        table.insert(itemToProps[item], name)
                     end
                 end
             end)
+            for _, list in pairs(itemToProps) do
+                for i, v in ipairs(list) do
+                    table.insert(propAsItems, v)
+                end
+            end
             print("Total items to check: " .. #propAsItems)
             storeDatatable:ForEachRow(function(name, data)
+                local achievement = data.achievementUnlock_38_883E827740DCBD0E996CF9B74B755175:ToString()
                 if array_contains(propAsItems, name) then
-                    print("Removing " .. name .. " from shop")
-                    storeDatatable:RemoveRow(name)
+                    if string.startswith(achievement, "__APLOCK__") then
+                        print(name .. " is already disabled")
+                    else
+                        print("Disabling " .. name .. " from shop")
+                        data.achievementUnlock_38_883E827740DCBD0E996CF9B74B755175 = FName("__APLOCK__" .. achievement)
+                    end
                 end
             end)
         else
             AddHint("Failed to remove shop items", HintType.Error)
         end
 
-        if options.ScrapRecipesAsItems == 1 then
-            LockRecipes(slot_data.ItemNames)
-        end
+        LockRecipes(slot_data.ItemNames)
 
         local SaveGameObject = GetSaveSlot()
         if SaveGameObject ~= nil then
             if options.FunnySetting == 1 and not SaveGameObject.localGameRules.funnySetting_29_3DBB4B5041357E51DA0DFBAD9368E881 then
                 AddHint("The AP includes funny items, but the setting is not enabled!", HintType.Error)
+            end
+
+            if options.TimeSensitive == 1 and SaveGameObject.savedTime.Z < 8 then
+                AddHint("The Green Rock is enabled as a location, but it is not day 8+ yet!", HintType.Warning)
             end
         end
     end
@@ -157,14 +164,25 @@ function connect(server, slot, password)
         for _, item in ipairs(received_items) do
             table.insert(item_list, item)
             local name = GetAPItemNameFromId(item.item)
-            local auto = auto_map[name]
-            if auto and auto.replay and item.index < I then
-                print("Replaying " .. name)
-                auto.run()
+
+            if item.index < I then
+                CheckShopAndControlsUnlock(name, false)
+
+                local auto = auto_map[name]
+                if auto and auto.replay then
+                    print("Replaying " .. name)
+                    auto.run()
+                end
             end
         end
+
         print("Total items received: " .. #item_list)
         CheckAutoItem(I)
+
+        local laptop = FindFirstOf("ui_laptop_C")
+        if laptop:IsValid() then
+            laptop:genStore()
+        end
     end
 
     function on_location_info(infos)
@@ -179,13 +197,13 @@ function connect(server, slot, password)
                 else
                     local player = ap:get_player_alias(info.player)
                     ScoutedLocations[info.location] = { ["item"] = item, ["player"] = player }
-                    -- if info.location == looking_at_location then
-                    --     local Pawn = GetPawn()
-                    --     if Pawn then
-                    --         Pawn.lookatName = FText("[AP] " .. item .. " for " .. player)
-                    --     end
-                    --     looking_at_location = -1
-                    -- end
+                    if info.location == looking_at_location then
+                        local ui = FindFirstOf("ui_UI_C")
+                        if ui:IsValid() then
+                            ui.text_hoverItemName:SetText(FText("[AP] " .. item .. " for " .. player))
+                        end
+                        looking_at_location = -1
+                    end
                     if array_contains(LocationsToCheck, info.location) then
                         ShowAchievementPopup(1, item .. " for " .. player, 1, 1)
                     end
@@ -200,6 +218,10 @@ function connect(server, slot, password)
         for _, LocationID in ipairs(locations) do
             CheckedLocations[LocationID] = true
             table.insert(LocationsToCheck, LocationID)
+            local keyname = inverse_locations[GetAPItemNameFromId(LocationID)]
+            if keyname ~= nil then
+                table.insert(checked_location_keynames, keyname)
+            end
         end
     end
 
@@ -380,4 +402,20 @@ function SendLocationId(id)
         ScoutLocation(id)
     end
     return true
+end
+
+function CheckShopAndControlsUnlock(name, show_hint)
+    local count = slot_data.ItemNames[name]
+    if count and count > 0 then
+        count = count - 1
+        slot_data.ItemNames[name] = count
+        local props = itemToProps[name]
+        local upgrade = item_to_upgrade[name]
+        if count == 0 then
+            if props then UnlockShopItems(props, show_hint) end
+            if upgrade then EnableUpgradeControls(upgrade, show_hint) end
+        else
+            print("Still missing " .. count .. " " .. name .. " to unlock shop")
+        end
+    end
 end

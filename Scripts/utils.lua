@@ -1,10 +1,10 @@
 function array_contains(arr, val)
     for index, value in ipairs(arr) do
         if value == val then
-            return true -- Value found
+            return true
         end
     end
-    return false -- Value not found
+    return false
 end
 
 function add_unique(arr, val)
