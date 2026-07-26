@@ -48,6 +48,28 @@ function GetDNC()
     return DNC
 end
 
+local AP_NOTEBOOK = nil
+function GetAPNotebook()
+    if AP_NOTEBOOK == nil or not AP_NOTEBOOK:IsValid() then
+        local notebooks = FindAllOf("prop_notebook_C")
+        for _, notebook in ipairs(notebooks) do
+            if notebook.Key:ToString() == "__AP_NOTEBOOK__" then
+                print("Found AP notebook")
+                AP_NOTEBOOK = notebook
+                return AP_NOTEBOOK
+            end
+        end
+        print("Creating new AP notebook")
+        AP_NOTEBOOK = SpawnSomething("/Game/objects/prop_notebook.prop_notebook_C")
+        AP_NOTEBOOK:K2_TeleportTo({ X = -415, Y = -1560, Z = -3346 }, {})  -- On the black cube underneath Alpha Base
+        AP_NOTEBOOK.Key = FName("__AP_NOTEBOOK__")
+        AP_NOTEBOOK.uneditable = true
+        AP_NOTEBOOK.Text[1] = FString("Hi! This is the notebook that stores all the data about your Archipelago run. If you picked it up, a new one has likely already been recreated.")
+        AP_NOTEBOOK:upd()
+    end
+    return AP_NOTEBOOK
+end
+
 function SpawnSomething(name)
     print("Attempting to spawn " .. name)
     local Class = StaticFindObject(name)
@@ -55,7 +77,7 @@ function SpawnSomething(name)
     if Class:IsValid() and Pawn:IsValid() then
         local Location = Pawn:K2_GetActorLocation()
         local Rotation = Pawn:K2_GetActorRotation()
-        local SpawnedActor = World:SpawnActor(Class, Location, Rotation)
+        local SpawnedActor = GetWorld():SpawnActor(Class, Location, Rotation)
         return SpawnedActor
     end
     return CreateInvalidObject()
@@ -386,7 +408,7 @@ upgradeFullNames = {
     ["coordCooldown"] = {"upg_coordCooldown_77_DFB1A6684A3BDDFEF94C6689D37CD2E8", "upgrade_cooldown"},
     ["scanner"] = {"upg_scanner_25_672849B8449E51A274C37DA92AD8B544", "upgrade_sensor"},
     -- Filler
-    ["coordRadarSpeed"] = {"upg_coordRadarSpeed_96_FBB3C8E541C23756B2F8A294D600F145", "upgrade_radarSpeed"},
+    ["coordRadarSpeed"] = {"upg_coordRadarSpeed_96_FBB3C8E541C23756B2F8A294D600F145", "upgrade_coordinateSpeed"},
     ["radarHist"] = {"upg_radarHist_93_3D85E50D4EA72B5864C6E0815C87CEB7", "upgrade_radarHist"},
     ["radar"] = {"upg_radar_speed_94_F1113DC149FA8DC9995F8EBAF2C7A452", "upgrade_radarSpd"},
     ["compTime"] = {"upg_compTime_69_7728FF794AD678EC9B481B840C119A20", "upgrade_breakerSpeed"},
@@ -416,6 +438,62 @@ function Upgrade(name)
     end
 
     return true
+end
+
+function LockUpgradeControls(item_names)
+    local laptop = FindFirstOf("ui_laptop_C")
+    if not laptop or not laptop:IsValid() then
+        AddHint("Failed to disable upgrade controls", HintType.Error)
+    else
+        local upgrades = {}
+        for name, _ in pairs(item_names) do
+            local upgrade = item_to_upgrade[name]
+            if upgrade then
+                table.insert(upgrades, upgrade)
+            end
+        end
+        print("Disabling controls of " .. table.concat(upgrades, ", "))
+        for _, name in ipairs(upgrades) do
+            local compName = upgradeFullNames[name][2]
+            laptop[compName].button_upgDown:SetVisibility(2) -- Hidden
+            laptop[compName].button_upgUp:SetVisibility(2) -- Hidden
+        end
+    end
+end
+
+function LockShopItems(item_names)
+    local storeDatatable = StaticFindObject("/Game/main/datatables/list_store.list_store")
+    local propDatatable = StaticFindObject("/Game/main/datatables/list_props.list_props")
+    if storeDatatable:IsValid() and propDatatable:IsValid() then
+        local propAsItems = {}
+        propDatatable:ForEachRow(function(name, data)
+            for item, _ in pairs(item_names) do
+                if string.lower(data.displayName_8_FE83ADBF40AA162942FCE589F5806DD2:ToString()) == string.lower(item) then
+                    if not itemToProps[item] then itemToProps[item] = {} end
+                    table.insert(itemToProps[item], name)
+                end
+            end
+        end)
+        for _, list in pairs(itemToProps) do
+            for i, v in ipairs(list) do
+                table.insert(propAsItems, v)
+            end
+        end
+        print("Total items to check: " .. #propAsItems)
+        storeDatatable:ForEachRow(function(name, data)
+            local achievement = data.achievementUnlock_38_883E827740DCBD0E996CF9B74B755175:ToString()
+            if array_contains(propAsItems, name) then
+                if string.startswith(achievement, "__APLOCK__") then
+                    print(name .. " is already disabled")
+                else
+                    print("Disabling " .. name .. " from shop")
+                    data.achievementUnlock_38_883E827740DCBD0E996CF9B74B755175 = FName("__APLOCK__" .. achievement)
+                end
+            end
+        end)
+    else
+        AddHint("Failed to remove shop items", HintType.Error)
+    end
 end
 
 local recipeResultToItemName = {

@@ -193,12 +193,19 @@ preserve_items = {
     ["eriewell"] = true
 }
 lock_until_ap_item = {
+    -- Generated
     ["rune_0"] = true,
     ["rune_1"] = true,
     ["rune_2"] = true,
     ["rune_3"] = true,
     ["fuse"] = true,
-    ["rad"] = true
+    ["rad"] = true,
+    ["moniquePlush"] = true,
+    ["pipebomb"] = true,
+
+    -- In containers
+    ["kerfsp_0"] = true,
+    ["physmodule_spectrogram"] = true
 }
 
 createdGoals = {

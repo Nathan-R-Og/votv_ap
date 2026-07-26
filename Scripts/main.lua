@@ -26,49 +26,33 @@ local last_item_failed = false
 DELETE_LOCATION_ITEMS = true
 
 function GetRecievedItems()
-    local SaveGameObject = GetSaveSlot()
-    if SaveGameObject ~= nil then
-        print("SAVE I IS " .. tostring(SaveGameObject.I))
-        return SaveGameObject.I
+    local APNotebook = GetAPNotebook()
+    if APNotebook:IsValid() then
+        print("Getting received items")
+        local receivedItems = tonumber(APNotebook.Text[2]:ToString()) or 0
+        print("SAVE RECEIVED ITEMS IS " .. receivedItems)
+        return receivedItems
     end
     return 0
 end
 
 function SetRecievedItems(val)
-    local SaveGameObject = GetSaveSlot()
-    if SaveGameObject ~= nil then
-        SaveGameObject.I = val
-        print("SAVE I IS NOW " .. tostring(SaveGameObject.I))
-        return true
-    end
-    return false
-end
-
-function GetCheckedLocationNames()
-    local SaveGameObject = GetSaveSlot()
-    if SaveGameObject ~= nil then
-        local codes = SaveGameObject.Task.dishesCode_41_1322AB5A47727AFCA04BB18608331B82
-        print("SAVE KEYNAME INDEX IS " .. #codes)
-        return codes
-    end
-    return 0
-end
-
-function AddCheckedLocationName(val)
-    local SaveGameObject = GetSaveSlot()
-    if SaveGameObject ~= nil then
-        local codes = SaveGameObject.Task.dishesCode_41_1322AB5A47727AFCA04BB18608331B82
-        codes[#codes + 1] = FString(val)
-        print("SAVE KEYNAME INDEX IS NOW " .. #codes)
+    local APNotebook = GetAPNotebook()
+    if APNotebook:IsValid() then
+        print("Setting received items")
+        APNotebook.Text[2] = FString(tostring(val))
+        APNotebook:upd()
+        print("SAVE RECEIVED ITEMS IS NOW " .. APNotebook.Text[2]:ToString())
         return true
     end
     return false
 end
 
 function GetSoldGarbageBags()
-    local SaveGameObject = GetSaveSlot()
-    if SaveGameObject ~= nil then
-        local amount = SaveGameObject.Task.fails_51_26566E3641B156F3F6AB08B9355882ED
+    local APNotebook = GetAPNotebook()
+    if APNotebook:IsValid() then
+        print("Getting trash bags")
+        local amount = tonumber(APNotebook.Text[3]:ToString()) or 0
         print("SAVE SOLD TRASH BAGS IS " .. tostring(amount))
         return amount
     end
@@ -76,10 +60,39 @@ function GetSoldGarbageBags()
 end
 
 function SetSoldGarbageBags(val)
-    local SaveGameObject = GetSaveSlot()
-    if SaveGameObject ~= nil then
-        SaveGameObject.Task.fails_51_26566E3641B156F3F6AB08B9355882ED = val
-        print("SAVE I IS NOW " .. tostring(SaveGameObject.Task.fails_51_26566E3641B156F3F6AB08B9355882ED))
+    local APNotebook = GetAPNotebook()
+    if APNotebook:IsValid() then
+        print("Setting trash bags")
+        APNotebook.Text[3] = FString(tostring(val))
+        APNotebook:upd()
+        print("SAVE SOLD TRASH BAGS IS NOW " .. APNotebook.Text[3]:ToString())
+        return true
+    end
+    return false
+end
+
+function GetCheckedLocationNames()
+    local APNotebook = GetAPNotebook()
+    if APNotebook:IsValid() then
+        print("Getting location names")
+        local codes = {}
+        for name in string.gmatch(APNotebook.Text[4]:ToString() or "", "[^,]+") do
+            table.insert(codes, name)
+        end
+        print("SAVE KEYNAME INDEX IS " .. #codes)
+        return codes
+    end
+    return 0
+end
+
+function AddCheckedLocationName(val)
+    local APNotebook = GetAPNotebook()
+    if APNotebook:IsValid() then
+        print("Setting location names")
+        local codes = GetCheckedLocationNames()
+        APNotebook.Text[4] = FString(table.concat(codes, ",") .. "," .. val)
+        APNotebook:upd()
+        print("SAVE KEYNAME INDEX IS NOW " .. APNotebook.Text[4]:ToString())
         return true
     end
     return false
@@ -165,13 +178,13 @@ function OnTouchProp(prop)
     if array_contains(checked_location_names, location) then
         print("Previously checked!")
         collected = true
-        checkedNames:ForEach(function(index, elem)
-            if elem:get():ToString() == keyname then
+        for _, name in ipairs(checkedNames) do
+            if name == keyname then
                 print("Registered on this save")
                 collected = false
                 return true
             end
-        end)
+        end
         if collected then
             AddHint("You already collected that item!", HintType.Warning)
         end
@@ -180,14 +193,26 @@ function OnTouchProp(prop)
         collected = SendLocation(location)
     end
 
+    local destroyItem = false
     if collected then
         AddCheckedLocationName(location)
         if DELETE_LOCATION_ITEMS and not preserve_items[name] then
-            prop:K2_DestroyActor()
+            destroyItem = true
         end
     elseif lock_until_ap_item[name] and array_contains(MissingLocations, GetAPLocationIDfromName(location)) then
-        prop:K2_DestroyActor()
+        destroyItem = true
         AddHint("You're not allowed to get this item until you receive it!", HintType.Error)
+    end
+
+    if destroyItem then
+        local player = GetPawn()
+        if player:IsValid() then
+            ExecuteWithDelay(100, function()
+                player:dropGrabObject()
+            end)
+            -- Alternatives: interruptHoldItem, timeDrop, simulateDrop
+        end
+        prop:K2_DestroyActor()
     end
 end
 
@@ -255,6 +280,7 @@ function RegisterAllHooks()
     end)
     RegisterUniqueHook("/Game/objects/prop.prop_C:GetName", function(self, DisplayName, propname)
         local key = self:get().Key:ToString()
+        if string.startswith(key, "APItem") then return end
         local name = self:get().Name:ToString()
         local location = locationKeys[key] or locationKeys[name]
         if location ~= nil then
@@ -275,8 +301,17 @@ function RegisterAllHooks()
         end
     end)
 
+    local droneAtBase = false
+    RegisterUniqueHook("/Game/objects/drone.drone_C:soundAlarm", function(self)
+        print("Drone is now at base")
+        droneAtBase = true
+    end)
     RegisterUniqueHook("/Game/objects/drone.drone_C:triggerFly", function(self, console)
         print("Drone has begun flight")
+        if not droneAtBase then return end
+        droneAtBase = false
+        print("Drone was at base")
+
         local SaveSlot = GetSaveSlot()
         if SaveSlot ~= nil then
             local container_index = self:get().container.propInventory.Index
@@ -515,6 +550,11 @@ function RegisterAllHooks()
     end
     FillItemMap()
 
+    local drone = FindFirstOf("drone_C")
+    if drone:IsValid() then
+        droneAtBase = drone.flyingType == 1
+    end
+
     AddHint("Remember to connect to Archipelago!", HintType.Thought)
     LoopAsync(30000, function()
         if ap then return true end
@@ -536,28 +576,39 @@ RegisterKeyBind(Key.F7, function()
         --LockRecipes({"Metal Scrap Recipe"})
         --UnlockRecipe("Metal Scrap Recipe")
         --complex_item_map["Bunker Keycard"]()
-        local pos = GetPawn():K2_GetActorLocation()
-        print(pos.X .. "/" .. pos.Y .. "/" .. pos.Z)
+        -- local pos = GetPawn():K2_GetActorLocation()
+        -- print(pos.X .. "/" .. pos.Y .. "/" .. pos.Z)
 
-        local storeDatatable = StaticFindObject("/Game/main/datatables/list_store.list_store")
-        local propDatatable = StaticFindObject("/Game/main/datatables/list_props.list_props")
-        if storeDatatable:IsValid() and propDatatable:IsValid() then
-            result = "\n"
-            storeDatatable:ForEachRow(function(name, data)
-                result = result .. "    \"" .. propDatatable:FindRow(name).displayName_8_FE83ADBF40AA162942FCE589F5806DD2:ToString() .. "\": ShopItem(" .. data.price_11_BE3AF83E446D1C3BDEA63BA50CFE096C .. ", " .. data.size_30_C3131BE84D89E0C389F1DB9557E08D74 .. ", \"" .. name .. "\", IC.filler"
-                if data.achievementUnlock_38_883E827740DCBD0E996CF9B74B755175:ToString() ~= "None" then result = result .. ", \"" .. data.achievementUnlock_38_883E827740DCBD0E996CF9B74B755175:ToString() .. "\"" end
-                result = result .. "),\n"
-            end)
-            print(result)
-        end
+        -- SendLocation("Basement Stairs Sandwich")
+
+        -- local storeDatatable = StaticFindObject("/Game/main/datatables/list_store.list_store")
+        -- local propDatatable = StaticFindObject("/Game/main/datatables/list_props.list_props")
+        -- if storeDatatable:IsValid() and propDatatable:IsValid() then
+        --     result = "\n"
+        --     storeDatatable:ForEachRow(function(name, data)
+        --         result = result .. "    \"" .. propDatatable:FindRow(name).displayName_8_FE83ADBF40AA162942FCE589F5806DD2:ToString() .. "\": ShopItem(" .. data.price_11_BE3AF83E446D1C3BDEA63BA50CFE096C .. ", " .. data.size_30_C3131BE84D89E0C389F1DB9557E08D74 .. ", \"" .. name .. "\", IC.filler"
+        --         if data.achievementUnlock_38_883E827740DCBD0E996CF9B74B755175:ToString() ~= "None" then result = result .. ", \"" .. data.achievementUnlock_38_883E827740DCBD0E996CF9B74B755175:ToString() .. "\"" end
+        --         result = result .. "),\n"
+        --     end)
+        --     print(result)
+        -- end
     end)
 end)
 
 RegisterHook("/Script/Engine.PlayerController:ClientRestart", function(self, NewPawn)
     NotifyUniqueOnNewObject("/Game/main/mainPlayer.mainPlayer_C", function(self)
-        SetRecievedItems(0)
+        -- SetRecievedItems(0)
         disconnect()
     end)
+
+    local menu = FindFirstOf("ui_menu_C")
+    if menu:IsValid() then
+        local version = menu.txt_version.Slot.Parent.Slot.Parent.Slots[2].Content.Slots[2].Content.Text:ToString()
+        print(version)
+        if version ~= "a090n" then
+            AddHint("The Archipelago mod is made to run on Build a090n (current is " .. version .. ").\nAny other version will most likely be unplayable.", HintType.Error)
+        end
+    end
 
     RegisterUniqueHook("/Game/main/mainGamemode.mainGamemode_C:Load Primitives", function(self, in_canLoad, in_isSubData, in_loadingSubLevel)
         RegisterAllHooks()

@@ -18,7 +18,7 @@ require("utils")
 local game_name = "Voices of the Void"
 local items_handling = AP.Permission.AUTO_ENABLED  -- full remote
 local client_version = {0, 6, 7}
-local mod_version = {0, 3, 0}
+local mod_version = {0, 4, 0}
 local message_format = AP.RenderFormat.TEXT
 ---@type APClient
 ap = nil
@@ -89,63 +89,6 @@ function connect(server, slot, password)
             end
         end
 
-        local laptop = FindFirstOf("ui_laptop_C")
-        if options.UpgradesAsItems >= 1 then
-            print("UpgradeAsItems: " .. options.UpgradesAsItems)
-            if laptop == nil then
-                AddHint("Failed to disable upgrade controls", HintType.Error)
-            else
-                local upgrades = {}
-                for name, _ in pairs(slot_data.ItemNames) do
-                    local upgrade = item_to_upgrade[name]
-                    if upgrade then
-                        table.insert(upgrades, upgrade)
-                    end
-                end
-                print("Disabling controls of " .. table.concat(upgrades, ", "))
-                for _, name in ipairs(upgrades) do
-                    local compName = upgradeFullNames[name][2]
-                    laptop[compName].button_upgDown:SetVisibility(2) -- Hidden
-                    laptop[compName].button_upgUp:SetVisibility(2) -- Hidden
-                end
-            end
-        end
-
-        local storeDatatable = StaticFindObject("/Game/main/datatables/list_store.list_store")
-        local propDatatable = StaticFindObject("/Game/main/datatables/list_props.list_props")
-        if storeDatatable:IsValid() and propDatatable:IsValid() then
-            local propAsItems = {}
-            propDatatable:ForEachRow(function(name, data)
-                for item, _ in pairs(slot_data.ItemNames) do
-                    if not slot_data.ShopItems[item] and string.lower(data.displayName_8_FE83ADBF40AA162942FCE589F5806DD2:ToString()) == string.lower(item) then
-                        if not itemToProps[item] then itemToProps[item] = {} end
-                        table.insert(itemToProps[item], name)
-                    end
-                end
-            end)
-            for _, list in pairs(itemToProps) do
-                for i, v in ipairs(list) do
-                    table.insert(propAsItems, v)
-                end
-            end
-            print("Total items to check: " .. #propAsItems)
-            storeDatatable:ForEachRow(function(name, data)
-                local achievement = data.achievementUnlock_38_883E827740DCBD0E996CF9B74B755175:ToString()
-                if array_contains(propAsItems, name) then
-                    if string.startswith(achievement, "__APLOCK__") then
-                        print(name .. " is already disabled")
-                    else
-                        print("Disabling " .. name .. " from shop")
-                        data.achievementUnlock_38_883E827740DCBD0E996CF9B74B755175 = FName("__APLOCK__" .. achievement)
-                    end
-                end
-            end)
-        else
-            AddHint("Failed to remove shop items", HintType.Error)
-        end
-
-        LockRecipes(slot_data.ItemNames)
-
         local SaveGameObject = GetSaveSlot()
         if SaveGameObject ~= nil then
             if options.FunnySetting == 1 and not SaveGameObject.localGameRules.funnySetting_29_3DBB4B5041357E51DA0DFBAD9368E881 then
@@ -156,6 +99,11 @@ function connect(server, slot, password)
                 AddHint("The Green Rock is enabled as a location, but it is not day 8+ yet!", HintType.Warning)
             end
         end
+
+        LockUpgradeControls(slot_data.ItemNames)
+        LockShopItems(slot_data.ItemNames)
+        LockRecipes(slot_data.ItemNames)
+        CheckUnobtainableWorldItemLocations()
     end
 
     function on_slot_refused(reasons)
@@ -244,8 +192,8 @@ function connect(server, slot, password)
 
     function on_print_json(msg, extra)
         print(ap:render_json(msg, message_format))
-        for key, value in pairs(extra) do
-            -- print("  " .. key .. ": " .. tostring(value))
+        if extra.type == "Hint" and extra.receiving == ap:get_player_number() then
+            AddEmail("Archipelago Hint", ap:render_json(msg, message_format), EmailUsername.Auto)
         end
     end
 
@@ -410,6 +358,62 @@ function SendLocationId(id)
         ScoutLocation(id)
     end
     return true
+end
+
+function CheckUnobtainableWorldItemLocations()
+    local missing_keynames = {}
+    local total = 0
+    for _, id in ipairs(MissingLocations) do
+        local name = GetAPNamefromLocationID(id)
+        if name ~= nil then
+            -- print("name: " .. tostring(name))
+            local keyname = inverse_locations[name]
+            if keyname ~= nil and not lock_until_ap_item[keyname] then
+                -- print("keyname: " .. tostring(keyname))
+                missing_keynames[keyname] = name
+                total = total + 1
+            end
+        end
+    end
+    local props = FindAllOf("prop_C")
+    local buried_items = FindAllOf("dirthole_item_C")
+    if props and buried_items then
+        print("Checking " .. total .. " potential missing key names against " .. #props .. " props and " .. #buried_items .. " buried items")
+        for _, prop in ipairs(props) do
+            if missing_keynames[prop.Key:ToString()] then
+                total = total - 1
+                missing_keynames[prop.Key:ToString()] = nil
+            elseif missing_keynames[prop.Name:ToString()] then
+                total = total - 1
+                missing_keynames[prop.Name:ToString()] = nil
+            end
+        end
+        for _, prop in ipairs(buried_items) do
+            if missing_keynames[prop.Key:ToString()] then
+                total = total - 1
+                missing_keynames[prop.Key:ToString()] = nil
+            elseif missing_keynames[prop.Name:ToString()] then
+                total = total - 1
+                missing_keynames[prop.Name:ToString()] = nil
+            end
+        end
+
+        if total > 0 then
+            AddHint("You are missing " .. total .. " locations whose world items couldn't be found", HintType.Warning)
+            for keyname, _ in pairs(missing_keynames) do
+                print(keyname)
+            end
+            ExecuteWithDelay(2000, function()
+                AddHint("Releasing those locations as a fallback measure", HintType.Warning)
+                for _, name in pairs(missing_keynames) do
+                    print(name)
+                    SendLocation(name)
+                end
+            end)
+        end
+    else
+        AddHint("Failed to verify if missing world item locations still exist", HintType.Error)
+    end
 end
 
 function CheckShopAndControlsUnlock(name, show_hint)
