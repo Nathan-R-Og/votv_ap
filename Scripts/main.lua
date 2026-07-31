@@ -572,6 +572,15 @@ end)
 RegisterKeyBind(Key.F7, function()
     ExecuteInGameThread(function()
         AddHint("Debug shortcut", HintType.Warning)
+        local notebooks = FindAllOf("prop_notebook_C")
+        for _, notebook in ipairs(notebooks) do
+            if notebook.Key:ToString() == "__AP_NOTEBOOK__" then
+                print("Found AP notebook")
+                print(notebook)
+                return
+            end
+        end
+        print("No notebook")
         --auto_map["Ragdoll Trap"].run()
         --LockRecipes({"Metal Scrap Recipe"})
         --UnlockRecipe("Metal Scrap Recipe")

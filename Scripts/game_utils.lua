@@ -60,10 +60,16 @@ function GetAPNotebook()
             end
         end
         print("Creating new AP notebook")
-        AP_NOTEBOOK = SpawnSomething("/Game/objects/prop_notebook.prop_notebook_C")
-        AP_NOTEBOOK:K2_TeleportTo({ X = -415, Y = -1560, Z = -3346 }, {})  -- On the black cube underneath Alpha Base
+        local out = {}
+        GetGameMode():spawnPropThroughGamemode(
+            FName("clipboard"),
+            -- On the black cube underneath Alpha Base
+            { ["Translation"] = { X = -415, Y = -1560, Z = -3346 }, ["Scale3D"] = { ["X"] = 1.0, ["Y"] = 1.0, ["Z"] = 1.0 } },
+            1,
+            out
+        )
+        AP_NOTEBOOK = out["actor "]
         AP_NOTEBOOK.Key = FName("__AP_NOTEBOOK__")
-        AP_NOTEBOOK.uneditable = true
         AP_NOTEBOOK.Text[1] = FString("Hi! This is the notebook that stores all the data about your Archipelago run. If you picked it up, a new one has likely already been recreated.")
         AP_NOTEBOOK:upd()
     end
