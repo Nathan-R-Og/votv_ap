@@ -202,6 +202,10 @@ lock_until_ap_item = {
     ["rad"] = true,
     ["moniquePlush"] = true,
     ["pipebomb"] = true,
+    ["pipebomb"] = true,
+    ["argemia_9"] = true,
+    ["argemia_10"] = true,
+    ["argemia_11"] = true,
 
     -- In containers
     ["kerfsp_0"] = true,
