@@ -165,6 +165,7 @@ locationKeys = {
     ["ff_htrophy_1"]           = "Deer Trophy Head",
     ["ff_htrophy_2"]           = "Goat Trophy Head",
     ["rLt3NxFnKUisbdNTqVioVg"] = "Buried Drive Box",
+    ["5Wwz-77PfAYmPIkjQdRGng"] = "Shrimp Pack",
 
     ["slab_0"]                 = "Fire Tablet",
     ["slab_1"]                 = "Air Tablet",
@@ -201,7 +202,6 @@ lock_until_ap_item = {
     ["fuse"] = true,
     ["rad"] = true,
     ["moniquePlush"] = true,
-    ["pipebomb"] = true,
     ["pipebomb"] = true,
     ["argemia_9"] = true,
     ["argemia_10"] = true,
