@@ -250,7 +250,7 @@ end
 
 function connectToAp(host, slot, password)
     ExecuteAsync(function()
-        connect(host, slot, "")
+        connect(host, slot, password)
     end)
 
     LoopAsync(200, function()
