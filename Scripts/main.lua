@@ -169,10 +169,10 @@ end)
 function OnTouchProp(prop)
     local key = prop.Key:ToString()
     -- Prevent items given by AP from triggering checks
-    if string.startswith(key, "APItem") then return end
+    if string.startswith(key, "APItem") then return false end
     local name = prop.Name:ToString()
     local location = locationKeys[key] or locationKeys[name]
-    if not location then return end
+    if not location then return false end
     local collected = false
     local checkedNames = GetCheckedLocationNames()
     if array_contains(checked_location_names, location) then
@@ -182,7 +182,7 @@ function OnTouchProp(prop)
             if name == keyname then
                 print("Registered on this save")
                 collected = false
-                return true
+                return false
             end
         end
         if collected then
@@ -205,15 +205,12 @@ function OnTouchProp(prop)
     end
 
     if destroyItem then
-        local player = GetPawn()
-        if player:IsValid() then
-            ExecuteWithDelay(100, function()
-                player:dropGrabObject()
-            end)
-            -- Alternatives: interruptHoldItem, timeDrop, simulateDrop
-        end
-        prop:K2_DestroyActor()
+        ExecuteWithDelay(100, function()
+            prop:K2_DestroyActor()
+        end)
+        -- Alternatives: interruptHoldItem, timeDrop, simulateDrop
     end
+    return destroyItem
 end
 
 function CheckDailyTask()
@@ -267,10 +264,14 @@ end
 
 function RegisterAllHooks()
     RegisterUniqueHook("/Game/objects/prop.prop_C:playerGrabbed_pre", function(self, player, collected)
-        OnTouchProp(self:get())
+        if OnTouchProp(self:get()) then
+            player:get():dropGrabObject()
+        end
     end)
     RegisterUniqueHook("/Game/objects/prop.prop_C:playerHoldPost", function(self, player, collected)
-        OnTouchProp(self:get())
+        if OnTouchProp(self:get()) then
+            player:get():forceDrop()
+        end
     end)
     RegisterUniqueHook("/Game/objects/prop.prop_C:playerTryToCollect", function(self, player, collected)
         OnTouchProp(self:get())
@@ -550,22 +551,23 @@ function RegisterAllHooks()
     end
     FillItemMap()
 
-    local notebook = GetAPNotebook()
-    if notebook and notebook:IsValid() then
-        local tokens = {}
-        for token in string.gmatch(notebook.Text[1]:ToString() or "", "[^,]+") do
-            table.insert(tokens, token)
-        end
-        if #tokens >= 3 and #tokens[1] > 0 and #tokens[2] > 0 then
-            connect(tokens[1], tokens[2], tokens[3])
-        else
-            AddHint("An AP save was detected but the connection info seems to be invalid. Please reconnect manually", HintType.Warning)
-        end
-    end
-
     local drone = FindFirstOf("drone_C")
     if drone:IsValid() then
         droneAtBase = drone.flyingType == 1
+    end
+
+    local notebook = GetAPNotebook()
+    if notebook and notebook:IsValid() then
+        local tokens = {}
+        local text = notebook.Text[1]:ToString() or ""
+        for token in string.gmatch(text, "[^,]*") do
+            table.insert(tokens, token)
+        end
+        if #tokens >= 3 and #tokens[1] > 0 and #tokens[2] > 0 then
+            connectToAp(tokens[1], tokens[2], tokens[3])
+        else
+            AddHint("An AP save was detected but the connection info seems to be invalid. Please reconnect manually", HintType.Warning)
+        end
     end
 
     if not ap then

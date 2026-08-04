@@ -73,7 +73,7 @@ function GetAPNotebook()
         )
         AP_NOTEBOOK = out["actor "]
         AP_NOTEBOOK.Key = FName("__AP_NOTEBOOK__")
-        AP_NOTEBOOK.Text[1] = FString(server + "," + slot_name + "," + password)
+        AP_NOTEBOOK.Text[1] = FString(server .. "," .. slot .. "," .. password)
         AP_NOTEBOOK:upd()
     end
     return AP_NOTEBOOK
@@ -538,45 +538,70 @@ function LockRecipes(item_names)
     end
 end
 
-local entrance_to_door = {
-    ["Alpha Base Entrance"] = "basedoor_entrance"
-    ["Signal Lab Entrance"] = "basedoor_signalroom"
-    ["Server Room Entrance"] = "basedoor_serverroom"
-    ["Garage Entrance"] = "basedoor_garage"
-    ["Admin Room Entrance"] = "basedoor_security"
-    ["Break Room Entrance"] = "basedoor_breakroom"
-    ["Utility Closet Entrance"] = "basedoor_closet"
-    ["Alpha Stairs Entrance"] = "basedoor_staircase"
-    ["Storage Room Entrance"] = "basedoor_upperLift"
-    ["Staff Room Entrance"] = "basedoor_bedroom"
-    ["Bathroom Entrance"] = "basedoor_bathroom"
-    ["Alpha Roof Entrance"] = "basedoor_balcony"
-    ["Bunker Entrance"] = "alphaBunkerDoor"
-    ["TR1 Room Entrance"] = "revMDoxyDA6NssqX4SJy-A"
-    ["TR2 Room Entrance"] = "7qQrT65eWflSxWVNLPrAig"
-    ["TR3 Room Entrance"] = "XykXHYr5-MfmEWuAyn4W4w"
+entrance_to_door = {
+    ["Alpha Base Entrance"] = "basedoor_entrance",
+    ["Signal Lab Entrance"] = "basedoor_signalroom",
+    ["Server Room Entrance"] = "basedoor_serverroom",
+    ["Garage Entrance"] = "basedoor_garage",
+    ["Admin Room Entrance"] = "basedoor_security",
+    ["Break Room Entrance"] = "basedoor_breakroom",
+    ["Utility Closet Entrance"] = "basedoor_closet",
+    ["Alpha Stairs Entrance"] = "basedoor_staircase",
+    ["Storage Room Entrance"] = "basedoor_upperLift",
+    ["Staff Room Entrance"] = "basedoor_bedroom",
+    ["Bathroom Entrance"] = "basedoor_bathroom",
+    ["Alpha Roof Entrance"] = "basedoor_balcony",
+    ["Bunker Entrance"] = "alphaBunkerDoor",
+
+    -- Kept here for the auto_item
+    ["TR1 Room Entrance"] = "",
+    ["TR2 Room Entrance"] = "",
+    ["TR3 Room Entrance"] = ""
 }
 function LockDoors(item_names)
     local doors_to_lock = {}
-    for _, item in ipairs(item_names) do
-        local door = entrance_to_door[item]
-        if door then
-            doors_to_lock[door] = true
+    for item, _ in pairs(item_names) do
+        if string.match(item, "^TR. Room Entrance$") then
+            -- Transformer doors have generated keys, so we must use something else to get them
+            local index = tonumber(item:sub(3,3))
+            for _, tr in ipairs(FindAllOf("generatorBuilding_C")) do
+                if tr.trNum == index - 1 then
+                    print("Jamming door of TR" .. index)
+                    tr.door2.ChildActor:jam(false)
+                end
+            end
+        else
+            local door = entrance_to_door[item]
+            if door then
+                doors_to_lock[door] = true
+            end
         end
     end
 
-    for _, door in FindAllOf("door_C") do
+    for _, door in ipairs(FindAllOf("door_C")) do
         if doors_to_lock[door.Key:ToString()] then
-            print("Jamming door " + door.Key:ToString())
-            door.jammed = true
+            print("Jamming door " .. door.Key:ToString())
+            door:jam(false)
         end
     end
 end
 
 function UnlockDoor(item_name)
-    for _, door in FindAllOf("door_C") do
+    if string.match(item_name, "^TR. Room Entrance$") then
+        -- Transformer doors have generated keys, so we must use something else to get them
+        local index = tonumber(item_name:sub(3, 3))
+        for _, tr in ipairs(FindAllOf("generatorBuilding_C")) do
+            if tr.trNum == index - 1 then
+                print("Unjamming door of TR" .. index)
+                tr.door2.ChildActor.jammed = false
+            end
+        end
+        return
+    end
+
+    for _, door in ipairs(FindAllOf("door_C")) do
         if door.Key:ToString() == entrance_to_door[item_name] then
-            print("Unjamming door " + door.Key:ToString())
+            print("Unjamming door " .. door.Key:ToString())
             door.jammed = false
         end
     end

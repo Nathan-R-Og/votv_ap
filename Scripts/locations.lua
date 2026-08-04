@@ -165,7 +165,7 @@ locationKeys = {
     ["ff_htrophy_1"]           = "Deer Trophy Head",
     ["ff_htrophy_2"]           = "Goat Trophy Head",
     ["rLt3NxFnKUisbdNTqVioVg"] = "Buried Drive Box",
-    ["5Wwz-77PfAYmPIkjQdRGng"] = "Shrimp Pack",
+    ["shrimp"]                 = "Shrimp Pack",
 
     ["slab_0"]                 = "Fire Tablet",
     ["slab_1"]                 = "Air Tablet",

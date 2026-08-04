@@ -330,7 +330,7 @@ end
 function ScoutLocation(id)
     if ap == nil then return end
     if id == nil or id < 0 then return end
-    if LocationsToScout[id] ~= nil or not array_contains(MissingLocations, id) then return end
+    if LocationsToScout[id] ~= nil then return end
     print("Scouting location " .. tostring(id))
     ap:LocationScouts({ id }, 0)
     LocationsToScout[id] = true
@@ -358,7 +358,7 @@ function SendLocationId(id)
     if id == nil or id < 0 then return false end
     if array_contains(LocationsToCheck, id) or not array_contains(MissingLocations, id) then return false end
     print("Trying to send location " .. tostring(id))
-    remove_value(MissionLocations, id)
+    remove_value(MissingLocations, id)
     add_unique(LocationsToCheck, id)
     local scoutInfo = ScoutedLocations[id]
     if scoutInfo ~= nil then
