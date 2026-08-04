@@ -206,6 +206,13 @@ lock_until_ap_item = {
     ["argemia_9"] = true,
     ["argemia_10"] = true,
     ["argemia_11"] = true,
+    ["grock"] = true,
+    ["yulegoat"] = true,
+    ["wendplush"] = true,
+    ["furfurA_2"] = true,
+    ["eriePlush"] = true,
+    ["abplush"] = true,
+    ["rad"] = true,
 
     -- In containers
     ["kerfsp_0"] = true,

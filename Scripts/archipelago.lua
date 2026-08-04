@@ -18,7 +18,7 @@ require("utils")
 local game_name = "Voices of the Void"
 local items_handling = AP.Permission.AUTO_ENABLED  -- full remote
 local client_version = {0, 6, 7}
-local mod_version = {0, 4, 0}
+local mod_version = {0, 5, 0}
 local message_format = AP.RenderFormat.TEXT
 ---@type APClient
 ap = nil
@@ -33,6 +33,9 @@ slot_data = nil
 completed = false
 item_list = {}
 checked_location_names = {}
+server = nil
+slot = nil
+password = nil
 
 itemToProps = {
     ["Progressive Sleeping Bag"] = {"sleepingbag", "sleepingbag_br", "sleepingbag_st"},
@@ -43,7 +46,11 @@ itemToProps = {
     ["Half Hook"] = {"hook", "hook_h"},  -- We need to disable the full hook and single hook as well
 }
 
-function connect(server, slot, password)
+function connect(_server, _slot, _password)
+    server = _server
+    slot = _slot
+    password = _password
+
     function on_socket_connected()
         AddHint("Socket connected", HintType.Info)
     end
@@ -103,6 +110,7 @@ function connect(server, slot, password)
         LockUpgradeControls(slot_data.ItemNames)
         LockShopItems(slot_data.ItemNames)
         LockRecipes(slot_data.ItemNames)
+        LockDoors(slot_data.ItemNames)
         CheckUnobtainableWorldItemLocations()
     end
 
@@ -350,6 +358,7 @@ function SendLocationId(id)
     if id == nil or id < 0 then return false end
     if array_contains(LocationsToCheck, id) or not array_contains(MissingLocations, id) then return false end
     print("Trying to send location " .. tostring(id))
+    remove_value(MissionLocations, id)
     add_unique(LocationsToCheck, id)
     local scoutInfo = ScoutedLocations[id]
     if scoutInfo ~= nil then

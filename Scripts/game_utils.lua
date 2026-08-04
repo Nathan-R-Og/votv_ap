@@ -59,7 +59,10 @@ function GetAPNotebook()
                 return AP_NOTEBOOK
             end
         end
+
+        if not ap then return nil end
         print("Creating new AP notebook")
+
         local out = {}
         GetGameMode():spawnPropThroughGamemode(
             FName("clipboard"),
@@ -70,7 +73,7 @@ function GetAPNotebook()
         )
         AP_NOTEBOOK = out["actor "]
         AP_NOTEBOOK.Key = FName("__AP_NOTEBOOK__")
-        AP_NOTEBOOK.Text[1] = FString("Hi! This is the notebook that stores all the data about your Archipelago run. If you picked it up, a new one has likely already been recreated.")
+        AP_NOTEBOOK.Text[1] = FString(server + "," + slot_name + "," + password)
         AP_NOTEBOOK:upd()
     end
     return AP_NOTEBOOK
@@ -532,6 +535,50 @@ function LockRecipes(item_names)
         end)
     else
         AddHint("Failed to lock recipes", HintType.Error)
+    end
+end
+
+local entrance_to_door = {
+    ["Alpha Base Entrance"] = "basedoor_entrance"
+    ["Signal Lab Entrance"] = "basedoor_signalroom"
+    ["Server Room Entrance"] = "basedoor_serverroom"
+    ["Garage Entrance"] = "basedoor_garage"
+    ["Admin Room Entrance"] = "basedoor_security"
+    ["Break Room Entrance"] = "basedoor_breakroom"
+    ["Utility Closet Entrance"] = "basedoor_closet"
+    ["Alpha Stairs Entrance"] = "basedoor_staircase"
+    ["Storage Room Entrance"] = "basedoor_upperLift"
+    ["Staff Room Entrance"] = "basedoor_bedroom"
+    ["Bathroom Entrance"] = "basedoor_bathroom"
+    ["Alpha Roof Entrance"] = "basedoor_balcony"
+    ["Bunker Entrance"] = "alphaBunkerDoor"
+    ["TR1 Room Entrance"] = "revMDoxyDA6NssqX4SJy-A"
+    ["TR2 Room Entrance"] = "7qQrT65eWflSxWVNLPrAig"
+    ["TR3 Room Entrance"] = "XykXHYr5-MfmEWuAyn4W4w"
+}
+function LockDoors(item_names)
+    local doors_to_lock = {}
+    for _, item in ipairs(item_names) do
+        local door = entrance_to_door[item]
+        if door then
+            doors_to_lock[door] = true
+        end
+    end
+
+    for _, door in FindAllOf("door_C") do
+        if doors_to_lock[door.Key:ToString()] then
+            print("Jamming door " + door.Key:ToString())
+            door.jammed = true
+        end
+    end
+end
+
+function UnlockDoor(item_name)
+    for _, door in FindAllOf("door_C") do
+        if door.Key:ToString() == entrance_to_door[item_name] then
+            print("Unjamming door " + door.Key:ToString())
+            door.jammed = false
+        end
     end
 end
 

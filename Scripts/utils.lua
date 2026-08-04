@@ -13,6 +13,22 @@ function add_unique(arr, val)
     end
 end
 
+function remove_value(arr, val)
+    for i=1,#arr do
+        if arr[i] == val then
+            table.remove(arr, i)
+            break
+        end
+    end
+end
+
+function any(arr, predicate)
+    for i,v in ipairs(arr) do
+        if predicate(v, i) then return true end
+    end
+    return false
+end
+
 function table_invert(t)
     local s={}
     for k,v in pairs(t) do

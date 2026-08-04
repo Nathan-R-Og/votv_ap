@@ -199,7 +199,7 @@ function OnTouchProp(prop)
         if DELETE_LOCATION_ITEMS and not preserve_items[name] then
             destroyItem = true
         end
-    elseif lock_until_ap_item[name] and array_contains(MissingLocations, GetAPLocationIDfromName(location)) then
+    elseif lock_until_ap_item[name] and any(item_list, function(val) return GetAPItemNameFromId(val.item) == item_map[name] end) then
         destroyItem = true
         AddHint("You're not allowed to get this item until you receive it!", HintType.Error)
     end
@@ -550,17 +550,32 @@ function RegisterAllHooks()
     end
     FillItemMap()
 
+    local notebook = GetAPNotebook()
+    if notebook and notebook:IsValid() then
+        local tokens = {}
+        for token in string.gmatch(notebook.Text[1]:ToString() or "", "[^,]+") do
+            table.insert(tokens, token)
+        end
+        if #tokens >= 3 and #tokens[1] > 0 and #tokens[2] > 0 then
+            connect(tokens[1], tokens[2], tokens[3])
+        else
+            AddHint("An AP save was detected but the connection info seems to be invalid. Please reconnect manually", HintType.Warning)
+        end
+    end
+
     local drone = FindFirstOf("drone_C")
     if drone:IsValid() then
         droneAtBase = drone.flyingType == 1
     end
 
-    AddHint("Remember to connect to Archipelago!", HintType.Thought)
-    LoopAsync(30000, function()
-        if ap then return true end
+    if not ap then
         AddHint("Remember to connect to Archipelago!", HintType.Thought)
-        return false
-    end)
+        LoopAsync(30000, function()
+            if ap then return true end
+            AddHint("Remember to connect to Archipelago!", HintType.Thought)
+            return false
+        end)
+    end
 end
 
 RegisterKeyBind(Key.F8, function()

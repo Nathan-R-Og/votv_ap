@@ -20,8 +20,6 @@ item_to_upgrade = {
 }
 
 auto_map = {
-    -- Handled by the received items to properly process the initial items received packet
-    -- TODO: See if we could move it here, and then just replay it when you receive the initial packet?
     ["Plastic Scrap Recipe"] =              { hint = HintType.Thought, run = function() UnlockRecipe("Plastic Scrap Recipe") end, replay = true },
     ["Metal Scrap Recipe"] =                { hint = HintType.Thought, run = function() UnlockRecipe("Metal Scrap Recipe") end, replay = true },
     ["Electronic Scrap Recipe"] =           { hint = HintType.Thought, run = function() UnlockRecipe("Electronic Scrap Recipe") end, replay = true },
@@ -119,6 +117,10 @@ auto_map = {
 
 for k,v in pairs(item_to_upgrade) do
     auto_map[k] = { hint = HintType.Info, run = function() Upgrade(v) end }
+end
+
+for k,_ in pairs(entrance_to_door) do
+    auto_map[k] = { hint = HintType.Info, run = function() UnlockDoor(k) end, replay = true }
 end
 
 complex_item_map = {
