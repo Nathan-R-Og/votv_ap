@@ -205,10 +205,8 @@ function OnTouchProp(prop)
     end
 
     if destroyItem then
-        ExecuteWithDelay(100, function()
-            prop:K2_DestroyActor()
-        end)
         -- Alternatives: interruptHoldItem, timeDrop, simulateDrop
+        prop:K2_DestroyActor()
     end
     return destroyItem
 end

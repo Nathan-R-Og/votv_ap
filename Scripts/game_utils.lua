@@ -566,8 +566,12 @@ function LockDoors(item_names)
             local index = tonumber(item:sub(3,3))
             for _, tr in ipairs(FindAllOf("generatorBuilding_C")) do
                 if tr.trNum == index - 1 then
-                    print("Jamming door of TR" .. index)
-                    tr.door2.ChildActor:jam(false)
+                    if tr.door2.ChildActor.jammed then
+                        print("Door of TR" .. index .. " was already jammed")
+                    else
+                        print("Jamming door of TR" .. index)
+                        tr.door2.ChildActor:jam(false)
+                    end
                 end
             end
         else
@@ -580,8 +584,12 @@ function LockDoors(item_names)
 
     for _, door in ipairs(FindAllOf("door_C")) do
         if doors_to_lock[door.Key:ToString()] then
-            print("Jamming door " .. door.Key:ToString())
-            door:jam(false)
+            if door.jammed then
+                print("Door " .. door.Key:ToString() .. " was already jammed")
+            else
+                print("Jamming door " .. door.Key:ToString())
+                door:jam(false)
+            end
         end
     end
 end

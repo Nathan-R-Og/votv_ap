@@ -34,7 +34,7 @@ completed = false
 item_list = {}
 checked_location_names = {}
 server = nil
-slot = nil
+slot = nil 
 password = nil
 death_link_enabled = false
 
@@ -42,9 +42,11 @@ itemToProps = {
     ["Progressive Sleeping Bag"] = {"sleepingbag", "sleepingbag_br", "sleepingbag_st"},
     ["Progressive Camera"] = {"cam_h_0", "cam_h_1", "cam_h_2"},
     ["Scuba Gear"] = {"scuba", "scuba_t"},
-    ["Kerfur"] = {"kerfus", "kerfus_0", "kerfus_1"},
-    [""] = {"kerfus_2"},  -- Permanently lock away Kerfur orange++
+    ["Kerfur"] = {"kerfus", "kerfus_0", "kerfus_1", "kerfus_2"},
     ["Half Hook"] = {"hook", "hook_h"},  -- We need to disable the full hook and single hook as well
+}
+unlockGroups = {
+    {group = "Kerfur", "Blue Kerfur", "Pink Kerfur", "Red Kerfur"}
 }
 
 function connect(_server, _slot, _password)
@@ -213,9 +215,9 @@ function connect(_server, _slot, _password)
     function on_bounced(bounce)
         print("Bounced:")
         for k,v in pairs(bounce) do
-            print(k + ": " + v)
+            print(k .. ": " .. tostring(v))
         end
-        if array_contains(bounce.tags, "DeathLink") and death_link_enabled then
+        if bounce.tags and array_contains(bounce.tags, "DeathLink") and death_link_enabled then
             local cause = bounce.data.cause or bounce.data.source .. " died. What a shame!"
             AddHint(cause, HintType.Error)
             death_link_enabled = false
@@ -440,17 +442,27 @@ function CheckUnobtainableWorldItemLocations()
 end
 
 function CheckShopAndControlsUnlock(name, show_hint)
-    local count = slot_data.ItemNames[name]
-    if count and count > 0 then
+    local group = {name, group = name}
+    for _, possible_group in ipairs(unlockGroups) do
+        if array_contains(possible_group, name) then
+            group = possible_group
+            break
+        end
+    end
+    local count = 0
+    for _, val in ipairs(group) do
+        count = count + (slot_data.ItemNames[val] or 0)
+    end
+    if count > 0 then
         count = count - 1
-        slot_data.ItemNames[name] = count
-        local props = itemToProps[name]
-        local upgrade = item_to_upgrade[name]
+        slot_data.ItemNames[name] = slot_data.ItemNames[name] - 1
+        local props = itemToProps[group.group]
+        local upgrade = item_to_upgrade[group.group]
         if count == 0 then
             if props then UnlockShopItems(props, show_hint) end
             if upgrade then EnableUpgradeControls(upgrade, show_hint) end
         else
-            print("Still missing " .. count .. " " .. name .. " to unlock shop")
+            print("Still missing " .. count .. " " .. group.group .. " to unlock shop")
         end
     end
 end
