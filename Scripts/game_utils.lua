@@ -192,61 +192,60 @@ end
 function MakePlayerLookAt(look_here)
     local Pawn = GetPawn()
     local Location = Pawn:K2_GetActorLocation()
-    Pawn.makeLookAt(look_here,Location)
+    Pawn:makeLookAt(look_here,Location)
 end
 
 function MakePlayerDropItem()
     local Pawn = GetPawn()
-    Pawn.forceDrop()
+    Pawn:forceDrop()
 end
 
 function MakePlayerEatShit(dmg)
     local Pawn = GetPawn()
-    Pawn.ateShit(dmg)
+    Pawn:ateShit(dmg)
 end
 
 function MakePlayerEatPiss(heal)
     local Pawn = GetPawn()
-    Pawn.heal(heal)
+    Pawn:heal(heal)
 end
 
 function MakePlayerPassOut()
     local Pawn = GetPawn()
-    Pawn.wakeup(true)
+    Pawn:wakeup(true)
 end
 
 --??? only really makes you reset camera
 function MakePlayerWakeUp()
     local Pawn = GetPawn()
-    Pawn.forceWakeup()
+    Pawn:forceWakeup()
 end
 
---the funnier alternative to deathlink
 function MakePlayerInexplicablyDie()
     local Pawn = GetPawn()
-    Pawn.fallen(true)
+    Pawn:ragdollMode(true, false, true)
 end
 
 function MakePlayerBurn(duration)
     local Pawn = GetPawn()
-    Pawn.ignite(duration)
+    Pawn:ignite(duration)
 end
 
 --trap? can be escaped by ragdolling
 function MakePlayerStop()
     local Pawn = GetPawn()
-    Pawn.ladderOn()
+    Pawn:ladderOn()
 end
 
 --trap
 function MakePlayerPause()
     local Pawn = GetPawn()
-    Pawn.simulateEsc()
+    Pawn:simulateEsc()
 end
 
 function MakePlayerWalk()
     local Pawn = GetPawn()
-    Pawn.unrun()
+    Pawn:unrun()
 end
 
 function MakePlayerLoseInput()
@@ -295,13 +294,13 @@ end
 function MakePlayerUnableToStash()
     local GameMode = GetGameMode()
     if GameMode:IsValid() then
-        GameMode.fuckYOuItem()
+        GameMode:fuckYOuItem()
     end
 end
 
 function MakePlayerRagdoll()
     local Pawn = GetPawn()
-    Pawn.ragdollMode(true, false, false)
+    Pawn:ragdollMode(true, false, false)
 end
 
 --trap ; make player reset radio tower

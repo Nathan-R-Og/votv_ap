@@ -264,7 +264,7 @@ function CheckDeathLink()
     -- AddHint("You died!", HintType.Thought)
     if ap and death_link_enabled then
         death_link_enabled = false
-        ap:Bounce({ source = slot, time = os.time(os.date("!*t")) }, nil, nil, {"DeathLink"})
+        ap:Bounce({ cause = "", source = slot, time = os.time(os.date("!*t")) }, nil, nil, {"DeathLink"})
     end
 end
 

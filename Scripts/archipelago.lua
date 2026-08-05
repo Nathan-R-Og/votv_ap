@@ -218,7 +218,7 @@ function connect(_server, _slot, _password)
             print(k .. ": " .. tostring(v))
         end
         if bounce.tags and array_contains(bounce.tags, "DeathLink") and death_link_enabled then
-            local cause = bounce.data.cause or bounce.data.source .. " died. What a shame!"
+            local cause = #bounce.data.cause > 0 and bounce.data.cause or (bounce.data.source .. " died. What a shame!")
             AddHint(cause, HintType.Error)
             death_link_enabled = false
             MakePlayerInexplicablyDie()
