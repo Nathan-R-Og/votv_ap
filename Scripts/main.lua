@@ -262,6 +262,14 @@ function ReachGoal()
     completed = true
 end
 
+function CheckDeathLink()
+    -- AddHint("You died!", HintType.Thought)
+    if ap and death_link_enabled then
+        death_link_enabled = false
+        ap:Bounce({ source = slot, time = os.time(os.date("!*t")) }, nil, nil, {"DeathLink"})
+    end
+end
+
 function RegisterAllHooks()
     RegisterUniqueHook("/Game/objects/prop.prop_C:playerGrabbed_pre", function(self, player, collected)
         if OnTouchProp(self:get()) then
@@ -312,6 +320,7 @@ function RegisterAllHooks()
         if not droneAtBase then return end
         droneAtBase = false
         print("Drone was at base")
+        CheckDailyTask()
 
         local SaveSlot = GetSaveSlot()
         if SaveSlot ~= nil then
@@ -539,6 +548,10 @@ function RegisterAllHooks()
         ReachGoal()
         self:get():Open(true)
         self:get().Out:Open(true)
+    end)
+
+    RegisterUniqueHook("/Game/main/mainPlayer.mainPlayer_C:ragdollMode", function(self, ragdoll, passOut, death)
+        if death:get() then CheckDeathLink() end
     end)
 
     CheckDailyTask()

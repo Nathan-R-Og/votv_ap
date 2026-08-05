@@ -36,13 +36,14 @@ checked_location_names = {}
 server = nil
 slot = nil
 password = nil
+death_link_enabled = false
 
 itemToProps = {
     ["Progressive Sleeping Bag"] = {"sleepingbag", "sleepingbag_br", "sleepingbag_st"},
     ["Progressive Camera"] = {"cam_h_0", "cam_h_1", "cam_h_2"},
     ["Scuba Gear"] = {"scuba", "scuba_t"},
-    ["Kerfur"] = {"kerfus", "kerfus_0", "kerfus_1", "kerfus_2"},
-    ["Blue Kerfur"] = {"kerfus", "kerfus_0", "kerfus_1", "kerfus_2"},
+    ["Kerfur"] = {"kerfus", "kerfus_0", "kerfus_1"},
+    [""] = {"kerfus_2"},  -- Permanently lock away Kerfur orange++
     ["Half Hook"] = {"hook", "hook_h"},  -- We need to disable the full hook and single hook as well
 }
 
@@ -72,7 +73,6 @@ function connect(_server, _slot, _password)
 
     function on_slot_connected(slot_data_remote)
         AddHint("Slot connected", HintType.Info)
-        ap:ConnectUpdate(nil, {"Lua-APClientPP"})
         print("Locations checked: " .. table.concat(ap.checked_locations, ", "))
         print("Locations missing: " .. table.concat(ap.missing_locations, ", "))
         MissingLocations = ap.missing_locations
@@ -92,7 +92,7 @@ function connect(_server, _slot, _password)
             elseif slot_data.Version[2] ~= mod_version[2] then
                 AddHint("Minor version difference with the apworld!" .. suffix, HintType.Warning)
             elseif slot_data.Version[3] ~= mod_version[3] then
-                -- AddHint("Revision difference with the AP" .. suffix, HintType.Info)
+                AddHint("Revision difference with the AP" .. suffix, HintType.Info)
             end
         end
 
@@ -105,6 +105,11 @@ function connect(_server, _slot, _password)
             if options.TimeSensitive == 1 and SaveGameObject.savedTime.Z < 8 then
                 AddHint("The Green Rock is enabled as a location, but it is not day 8+ yet!", HintType.Warning)
             end
+        end
+
+        if options.DeathLink == 1 then
+            death_link_enabled = true
+            ap:ConnectUpdate(nil, {"Lua-APClientPP", "DeathLink"})
         end
 
         LockUpgradeControls(slot_data.ItemNames)
@@ -207,7 +212,15 @@ function connect(_server, _slot, _password)
 
     function on_bounced(bounce)
         print("Bounced:")
-        print(bounce)
+        for k,v in pairs(bounce) do
+            print(k + ": " + v)
+        end
+        if array_contains(bounce.tags, "DeathLink") and death_link_enabled then
+            local cause = bounce.data.cause or bounce.data.source .. " died. What a shame!"
+            AddHint(cause, HintType.Error)
+            death_link_enabled = false
+            MakePlayerInexplicablyDie()
+        end
     end
 
     function on_retrieved(map, keys, extra)
@@ -292,6 +305,7 @@ function disconnect()
     ap = nil
     have_days = 0
     sold_garbage_bags = 0
+    death_link_enabled = false
     collectgarbage("collect")
     AddHint("Successfully Disconnected.\nHave a good day!", HintType.Warning)
 end
