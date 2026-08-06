@@ -48,37 +48,6 @@ function GetDNC()
     return DNC
 end
 
-local AP_NOTEBOOK = nil
-function GetAPNotebook()
-    if AP_NOTEBOOK == nil or not AP_NOTEBOOK:IsValid() then
-        local notebooks = FindAllOf("prop_notebook_C")
-        for _, notebook in ipairs(notebooks) do
-            if notebook.Key:ToString() == "__AP_NOTEBOOK__" then
-                print("Found AP notebook")
-                AP_NOTEBOOK = notebook
-                return AP_NOTEBOOK
-            end
-        end
-
-        if not ap then return nil end
-        print("Creating new AP notebook")
-
-        local out = {}
-        GetGameMode():spawnPropThroughGamemode(
-            FName("clipboard"),
-            -- On the black cube underneath Alpha Base
-            { ["Translation"] = { X = -415, Y = -1560, Z = -3346 }, ["Scale3D"] = { ["X"] = 1.0, ["Y"] = 1.0, ["Z"] = 1.0 } },
-            1,
-            out
-        )
-        AP_NOTEBOOK = out["actor "]
-        AP_NOTEBOOK.Key = FName("__AP_NOTEBOOK__")
-        AP_NOTEBOOK.Text[1] = FString(server .. "," .. slot .. "," .. password)
-        AP_NOTEBOOK:upd()
-    end
-    return AP_NOTEBOOK
-end
-
 function SpawnSomething(name)
     print("Attempting to spawn " .. name)
     local Class = StaticFindObject(name)
@@ -415,6 +384,7 @@ upgradeFullNames = {
     ["coordMovementSpeed"] = {"upg_coordMovementSpeed_97_16B378034FDC97CB0628CBABB7674074", "upgrade_sensorSpeed"},
     ["coordCooldown"] = {"upg_coordCooldown_77_DFB1A6684A3BDDFEF94C6689D37CD2E8", "upgrade_cooldown"},
     ["scanner"] = {"upg_scanner_25_672849B8449E51A274C37DA92AD8B544", "upgrade_sensor"},
+    ["triangleProb"] = {"upg_triangleProb_103_C4D06BDA4C93B8ADC417EDA7DE68FA73", "upgrade_pingStrength"},
     -- Filler
     ["coordRadarSpeed"] = {"upg_coordRadarSpeed_96_FBB3C8E541C23756B2F8A294D600F145", "upgrade_coordinateSpeed"},
     ["radarHist"] = {"upg_radarHist_93_3D85E50D4EA72B5864C6E0815C87CEB7", "upgrade_radarHist"},
@@ -589,6 +559,88 @@ function LockDoors(item_names)
                 print("Jamming door " .. door.Key:ToString())
                 door:jam(false)
             end
+        end
+    end
+end
+
+function CheckUnobtainableWorldItemLocations()
+    local missing_keynames = {}
+    local total = 0
+    for _, id in ipairs(MissingLocations) do
+        local name = GetAPNamefromLocationID(id)
+        if name ~= nil then
+            -- print("name: " .. tostring(name))
+            local keyname = inverse_locations[name]
+            if keyname ~= nil and not lock_until_ap_item[keyname] then
+                -- print("keyname: " .. tostring(keyname))
+                missing_keynames[keyname] = name
+                total = total + 1
+            end
+        end
+    end
+    local props = FindAllOf("prop_C")
+    local buried_items = FindAllOf("dirthole_item_C")
+    if props and buried_items then
+        print("Checking " .. total .. " potential missing key names against " .. #props .. " props and " .. #buried_items .. " buried items")
+        for _, prop in ipairs(props) do
+            if missing_keynames[prop.Key:ToString()] then
+                total = total - 1
+                missing_keynames[prop.Key:ToString()] = nil
+            elseif missing_keynames[prop.Name:ToString()] then
+                total = total - 1
+                missing_keynames[prop.Name:ToString()] = nil
+            end
+        end
+        for _, prop in ipairs(buried_items) do
+            if missing_keynames[prop.Key:ToString()] then
+                total = total - 1
+                missing_keynames[prop.Key:ToString()] = nil
+            elseif missing_keynames[prop.Name:ToString()] then
+                total = total - 1
+                missing_keynames[prop.Name:ToString()] = nil
+            end
+        end
+
+        if total > 0 then
+            AddHint("You are missing " .. total .. " locations whose world items couldn't be found", HintType.Warning)
+            for keyname, _ in pairs(missing_keynames) do
+                print(keyname)
+            end
+            ExecuteWithDelay(2000, function()
+                AddHint("Releasing those locations as a fallback measure", HintType.Warning)
+                for _, name in pairs(missing_keynames) do
+                    print(name)
+                    SendLocation(name)
+                end
+            end)
+        end
+    else
+        AddHint("Failed to verify if missing world item locations still exist", HintType.Error)
+    end
+end
+
+function CheckShopAndControlsUnlock(name, show_hint)
+    local group = {name, group = name}
+    for _, possible_group in ipairs(unlockGroups) do
+        if array_contains(possible_group, name) then
+            group = possible_group
+            break
+        end
+    end
+    local count = 0
+    for _, val in ipairs(group) do
+        count = count + (slot_data.ItemNames[val] or 0)
+    end
+    if count > 0 then
+        count = count - 1
+        slot_data.ItemNames[name] = slot_data.ItemNames[name] - 1
+        local props = itemToProps[group.group]
+        local upgrade = item_to_upgrade[group.group]
+        if count == 0 then
+            if props then UnlockShopItems(props, show_hint) end
+            if upgrade then EnableUpgradeControls(upgrade, show_hint) end
+        else
+            print("Still missing " .. count .. " " .. group.group .. " to unlock shop")
         end
     end
 end

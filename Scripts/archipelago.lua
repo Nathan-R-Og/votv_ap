@@ -44,6 +44,7 @@ itemToProps = {
     ["Scuba Gear"] = {"scuba", "scuba_t"},
     ["Kerfur"] = {"kerfus", "kerfus_0", "kerfus_1", "kerfus_2"},
     ["Half Hook"] = {"hook", "hook_h"},  -- We need to disable the full hook and single hook as well
+    ["Hook"] = {"hook", "hook_h"},
 }
 unlockGroups = {
     {group = "Kerfur", "Blue Kerfur", "Pink Kerfur", "Red Kerfur"}
@@ -60,7 +61,7 @@ function connect(_server, _slot, _password)
 
     function on_socket_error(msg)
         print(msg)
-        AddHint("Socket error: " .. msg, HintType.Error)
+        AddHint("Socket error: " .. tostring(msg), HintType.Error)
     end
 
     function on_socket_disconnected()
@@ -128,18 +129,25 @@ function connect(_server, _slot, _password)
     function on_items_received(received_items)
         print("Items received: " .. #received_items)
         local I = GetRecievedItems()
+        local is_initial = #item_list == 0
         for _, item in ipairs(received_items) do
             table.insert(item_list, item)
             local name = GetAPItemNameFromId(item.item)
 
+            local auto = auto_map[name]
             if item.index < I then
                 CheckShopAndControlsUnlock(name, false)
 
-                local auto = auto_map[name]
                 if auto and auto.replay then
                     print("Replaying " .. name)
                     auto.run()
                 end
+            elseif auto and not is_initial then
+                -- The only weird case is if the very first item is auto, but this gets handled a few lines below by CheckAutoItem
+                AddSkipClaimedItem(name)
+                AddHint(name .. " from " .. ap:get_player_alias(item.player), auto.hint)
+                auto.run()
+                CheckShopAndControlsUnlock(name, true)
             end
         end
 
@@ -385,84 +393,9 @@ function SendLocationId(id)
     return true
 end
 
-function CheckUnobtainableWorldItemLocations()
-    local missing_keynames = {}
-    local total = 0
-    for _, id in ipairs(MissingLocations) do
-        local name = GetAPNamefromLocationID(id)
-        if name ~= nil then
-            -- print("name: " .. tostring(name))
-            local keyname = inverse_locations[name]
-            if keyname ~= nil and not lock_until_ap_item[keyname] then
-                -- print("keyname: " .. tostring(keyname))
-                missing_keynames[keyname] = name
-                total = total + 1
-            end
-        end
-    end
-    local props = FindAllOf("prop_C")
-    local buried_items = FindAllOf("dirthole_item_C")
-    if props and buried_items then
-        print("Checking " .. total .. " potential missing key names against " .. #props .. " props and " .. #buried_items .. " buried items")
-        for _, prop in ipairs(props) do
-            if missing_keynames[prop.Key:ToString()] then
-                total = total - 1
-                missing_keynames[prop.Key:ToString()] = nil
-            elseif missing_keynames[prop.Name:ToString()] then
-                total = total - 1
-                missing_keynames[prop.Name:ToString()] = nil
-            end
-        end
-        for _, prop in ipairs(buried_items) do
-            if missing_keynames[prop.Key:ToString()] then
-                total = total - 1
-                missing_keynames[prop.Key:ToString()] = nil
-            elseif missing_keynames[prop.Name:ToString()] then
-                total = total - 1
-                missing_keynames[prop.Name:ToString()] = nil
-            end
-        end
-
-        if total > 0 then
-            AddHint("You are missing " .. total .. " locations whose world items couldn't be found", HintType.Warning)
-            for keyname, _ in pairs(missing_keynames) do
-                print(keyname)
-            end
-            ExecuteWithDelay(2000, function()
-                AddHint("Releasing those locations as a fallback measure", HintType.Warning)
-                for _, name in pairs(missing_keynames) do
-                    print(name)
-                    SendLocation(name)
-                end
-            end)
-        end
-    else
-        AddHint("Failed to verify if missing world item locations still exist", HintType.Error)
-    end
-end
-
-function CheckShopAndControlsUnlock(name, show_hint)
-    local group = {name, group = name}
-    for _, possible_group in ipairs(unlockGroups) do
-        if array_contains(possible_group, name) then
-            group = possible_group
-            break
-        end
-    end
-    local count = 0
-    for _, val in ipairs(group) do
-        count = count + (slot_data.ItemNames[val] or 0)
-    end
-    if count > 0 then
-        count = count - 1
-        slot_data.ItemNames[name] = slot_data.ItemNames[name] - 1
-        local props = itemToProps[group.group]
-        local upgrade = item_to_upgrade[group.group]
-        if count == 0 then
-            if props then UnlockShopItems(props, show_hint) end
-            if upgrade then EnableUpgradeControls(upgrade, show_hint) end
-        else
-            print("Still missing " .. count .. " " .. group.group .. " to unlock shop")
-        end
-    end
+function ReachGoal()
+    if ap == nil then return end
+    ap:StatusUpdate(ap.ClientStatus.GOAL)
+    AddHint("You have reached your goal, congratulations!", HintType.Info)
+    completed = true
 end

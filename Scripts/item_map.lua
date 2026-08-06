@@ -13,6 +13,7 @@ item_to_upgrade = {
     ["Progressive Detector Quality"] = "detecQual",
     ["Progressive Detector Strength"] = "scanner",
     ["Progressive Detector Frequency"] = "scannerFr",
+    ["Progressive Ping Strength"] = "triangleProb",
     -- Unused
     ["Progressive Filter Size"] = "downloadFiltSize",
     ["Progressive Server Stability"] = "serverStability",

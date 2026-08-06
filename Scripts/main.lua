@@ -4,6 +4,7 @@ UEHelpers = require("UEHelpers")
 
 require("utils")
 require("game_utils")
+require("save")
 require("archipelago")
 
 --last achieved day
@@ -25,84 +26,15 @@ local last_item_failed = false
 
 DELETE_LOCATION_ITEMS = true
 
-function GetRecievedItems()
-    local APNotebook = GetAPNotebook()
-    if APNotebook:IsValid() then
-        print("Getting received items")
-        local receivedItems = tonumber(APNotebook.Text[2]:ToString()) or 0
-        print("SAVE RECEIVED ITEMS IS " .. receivedItems)
-        return receivedItems
-    end
-    return 0
-end
-
-function SetRecievedItems(val)
-    local APNotebook = GetAPNotebook()
-    if APNotebook:IsValid() then
-        print("Setting received items")
-        APNotebook.Text[2] = FString(tostring(val))
-        APNotebook:upd()
-        print("SAVE RECEIVED ITEMS IS NOW " .. APNotebook.Text[2]:ToString())
-        return true
-    end
-    return false
-end
-
-function GetSoldGarbageBags()
-    local APNotebook = GetAPNotebook()
-    if APNotebook:IsValid() then
-        print("Getting trash bags")
-        local amount = tonumber(APNotebook.Text[3]:ToString()) or 0
-        print("SAVE SOLD TRASH BAGS IS " .. tostring(amount))
-        return amount
-    end
-    return 0
-end
-
-function SetSoldGarbageBags(val)
-    local APNotebook = GetAPNotebook()
-    if APNotebook:IsValid() then
-        print("Setting trash bags")
-        APNotebook.Text[3] = FString(tostring(val))
-        APNotebook:upd()
-        print("SAVE SOLD TRASH BAGS IS NOW " .. APNotebook.Text[3]:ToString())
-        return true
-    end
-    return false
-end
-
-function GetCheckedLocationNames()
-    local APNotebook = GetAPNotebook()
-    if APNotebook:IsValid() then
-        print("Getting location names")
-        local codes = {}
-        for name in string.gmatch(APNotebook.Text[4]:ToString() or "", "[^,]+") do
-            table.insert(codes, name)
-        end
-        print("SAVE KEYNAME INDEX IS " .. #codes)
-        return codes
-    end
-    return 0
-end
-
-function AddCheckedLocationName(val)
-    local APNotebook = GetAPNotebook()
-    if APNotebook:IsValid() then
-        print("Setting location names")
-        local codes = GetCheckedLocationNames()
-        APNotebook.Text[4] = FString(table.concat(codes, ",") .. "," .. val)
-        APNotebook:upd()
-        print("SAVE KEYNAME INDEX IS NOW " .. APNotebook.Text[4]:ToString())
-        return true
-    end
-    return false
-end
-
 -- TODO: Find better name
 function CheckAutoItem(i)
     if i < #item_list then
         local next_item = item_list[i+1]
         local item_name = GetAPItemNameFromId(next_item.item)
+        if WasSkipClaimed(item_name) then
+            ShiftSkipClaimed()
+            return CheckAutoItem(i+1)
+        end
         local auto_item = auto_map[item_name]
         if auto_item ~= nil then
             AddHint(item_name .. " from " .. ap:get_player_alias(next_item.player), auto_item.hint)
@@ -116,7 +48,14 @@ function CheckAutoItem(i)
 end
 
 function SendItemsHint()
-    local item_count = #item_list - GetRecievedItems()
+    local item_count = 0
+    for i=GetRecievedItems()+1,#item_list do
+        local item = item_list[i]
+        local item_name = GetAPItemNameFromId(item.item)
+        if not WasSkipClaimed(item_name) then
+            item_count = item_count + 1
+        end
+    end
     if item_count > 0 then
         local item = item_list[GetRecievedItems()+1]
         local item_name = GetAPItemNameFromId(item.item)
@@ -251,13 +190,6 @@ function CheckFuseHealth(index, obj)
     else
         return 0
     end
-end
-
-function ReachGoal()
-    if ap == nil then return end
-    ap:StatusUpdate(ap.ClientStatus.GOAL)
-    AddHint("You have reached your goal, congratulations!", HintType.Info)
-    completed = true
 end
 
 function CheckDeathLink()
@@ -440,67 +372,6 @@ function RegisterAllHooks()
         SendLocation("Light the " .. dir .. " Candle")
     end)
 
-    -- SHOP ITEM LOCATIONS HOOKS - Disabled since the compileOrder one arbitrarily (but consistently) corrupts the drone's content
-    -- RegisterUniqueHook("/Game/umg/interfaces/ui_laptop.ui_laptop_C:addStoreCart", function(self, struct_store)
-    --     if not ap then return end
-    --     local name = struct_store:get().name_14_B3814BBE478D1FA0AB005BB6386C1541:ToString()
-    --     if name == nil then return end
-    --     local visual_name = item_map[name]
-    --     if visual_name == nil or not slot_data.ShopItems[visual_name] then return end
-    --     local item_id = GetAPItemIdFromName(visual_name)
-    --     for i=1,GetRecievedItems() do
-    --         if item_list[i] and item_list[i].item == item_id then return end
-    --     end
-    --     local max_amount = 0
-    --     local location_id = GetAPLocationIDfromName("Purchase " .. visual_name)
-    --     if array_contains(MissingLocations, location_id) then
-    --         local has_another_copy = false
-    --         self:get().cart:ForEach(function(index, elem)
-    --             if index == #self:get().cart then return true end
-    --             if elem:get().name_14_B3814BBE478D1FA0AB005BB6386C1541:ToString() == name then
-    --                 has_another_copy = true
-    --                 return true
-    --             end
-    --         end)
-    --         if not has_another_copy then return end
-    --     end
-    --     self:get().removeStoreCart(#self:get().cart - 1)
-    --     AddHint("You cannot buy more of that item than you need\nfor the location until you receive it", HintType.Warning)
-    -- end)
-    -- RegisterUniqueHook("/Game/objects/drone.drone_C:compileOrder", function(self)
-    --     print("COMPILE ORDERS")
-    --     local SaveSlot = GetSaveSlot()
-    --     if SaveSlot ~= nil then
-    --         local container = self:get().container
-    --         local container_index = container.propInventory.Index
-    --         local container_data = SaveSlot.GObjStack[container_index + 1].obj_11_89CC26B14C79E8F107FE6E9010A5AFC9
-    --         local filtered_items = {}
-    --         local filtered_names = {}
-    --         local filtered_masses = {}
-    --         local filtered_volumes = {}
-    --         container_data:ForEach(function(index, item)
-    --             local real_item = item:get()
-    --             local name = real_item.names_63_D074F50147CB91EADFFD9FB98BDF4016[1].vectors_11_89CC26B14C79E8F107FE6E9010A5AFC9[1]:ToString()
-    --             if name and item_map[name] and SendLocation("Purchase " .. item_map[name]) then return end
-    --             table.insert(filtered_items, real_item)
-    --             table.insert(filtered_names, container.nameData[index])
-    --             table.insert(filtered_masses, container.massData[index])
-    --             table.insert(filtered_volumes, container.volumeData[index])
-    --         end)
-    --         container_data:Empty()
-    --         container.nameData:Empty()
-    --         container.massData:Empty()
-    --         container.volumeData:Empty()
-    --         for i,v in ipairs(filtered_items) do
-    --             print(tostring(v:IsValid()) .. "/" .. tostring(v:IsMappedToObject()) .. "/" .. v.names_63_D074F50147CB91EADFFD9FB98BDF4016[1].vectors_11_89CC26B14C79E8F107FE6E9010A5AFC9[1]:ToString())
-    --             container_data[i] = v
-    --         end
-    --         for i,v in ipairs(filtered_names) do container.nameData[i] = v end
-    --         for i,v in ipairs(filtered_masses) do container.massData[i] = v end
-    --         for i,v in ipairs(filtered_volumes) do container.volumeData[i] = v end
-    --     end
-    -- end)
-
     -- Day Looping
     RegisterUniqueHook("/Game/objects/misc/daynightCycle.daynightCycle_C:ReceiveTick", function(self, DeltaSeconds)
         if ap == nil then return end
@@ -650,20 +521,6 @@ RegisterHook("/Script/Engine.PlayerController:ClientRestart", function(self, New
     RegisterUniqueHook("/Game/main/mainGamemode.mainGamemode_C:Load Primitives", function(self, in_canLoad, in_isSubData, in_loadingSubLevel)
         RegisterAllHooks()
     end)
-end)
-
-RegisterConsoleCommandHandler("daymax", function(FullCommand, Parameters)
-    -- If we have no parameters then just let someone else handle this command
-    if #Parameters < 1 then
-        return false
-    end
-
-    local danc = GetDNC()
-    if danc:IsValid() then
-        danc.MaxTime = tonumber(Parameters[1])
-    end
-
-    return true
 end)
 
 RegisterConsoleCommandHandler("host_timescale", function(FullCommand, Parameters)
