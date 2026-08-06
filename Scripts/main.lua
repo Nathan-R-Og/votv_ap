@@ -423,6 +423,21 @@ function RegisterAllHooks()
         if death:get() then CheckDeathLink() end
     end)
 
+    RegisterUniqueHook("/Game/main/mainGamemode.mainGamemode_C:debugtp", function(self)
+        local player = GetPawn()
+        if player:IsValid() then
+            player:teleportWObackrooms({ Translation = { X = -37692, Y = 69673, Z = 6480 } }, false, true) -- Game start position
+            AddHint("Due to the AP mod, the Debug TP now brings you to the start of the game", HintType.Info)
+        end
+    end)
+    RegisterUniqueHook("/Game/objects/prop_donut.prop_donut_C:ExecuteUbergraph_prop_donut", function(self, EntryPoint)
+        local player = GetPawn()
+        if player:IsValid() then
+            player:teleportWObackrooms({ Translation = { X = -37692, Y = 69673, Z = 6480 } }, false, true) -- Game start position
+            AddHint("Due to the AP mod, the donut now brings you to the start of the game", HintType.Info)
+        end
+    end)
+
     CheckDailyTask()
     local static_radio = StaticFindObject("/Game/objects/radiotower.radiotower_C")
     local radiotower = FindObject(static_radio, GetWorld(), "radiotower", true)
