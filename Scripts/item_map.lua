@@ -50,6 +50,17 @@ auto_map = {
             end
         end
     },
+    ["Positive Reputation"] = {
+        hint = HintType.Info,
+        run = function()
+            local SaveSlot = GetSaveSlot()
+            if SaveSlot then
+                SaveSlot.arirReputation = SaveSlot.arirReputation + options.AriralReputationAmount
+            end
+        end
+    },
+
+    ["Random Fuse Blowout"] = { hint = HintType.Warning, run = function() SetPendingFuseBlowouts(GetPendingFuseBlowouts() + 1) end },
 
     ["Ragdoll Trap"] = { hint = HintType.Error, run = function() MakePlayerRagdoll() end },
     ["Breaker Trap"] = {
@@ -112,6 +123,15 @@ auto_map = {
             end
         end
     },
+    ["Negative Reputation Trap"] = {
+        hint = HintType.Error,
+        run = function()
+            local SaveSlot = GetSaveSlot()
+            if SaveSlot then
+                SaveSlot.arirReputation = SaveSlot.arirReputation - options.AriralReputationAmount
+            end
+        end
+    },
 
     ["Victory"] = { hint = HintType.Info, run = function() end }
 }
@@ -121,7 +141,11 @@ for k,v in pairs(item_to_upgrade) do
 end
 
 for k,_ in pairs(entrance_to_door) do
-    auto_map[k] = { hint = HintType.Info, run = function() UnlockDoor(k) end, replay = true }
+    auto_map[k] = { hint = HintType.Thought, run = function() UnlockDoor(k) end, replay = true }
+end
+
+for k,_ in pairs(item_to_breaker) do
+    auto_map[k] = { hint = HintType.Thought, run = function() UnlockBreaker(k) end, replay = true }
 end
 
 complex_item_map = {

@@ -135,7 +135,9 @@ function OnTouchProp(prop)
     local destroyItem = false
     if collected then
         AddCheckedLocationName(location)
-        if DELETE_LOCATION_ITEMS and not preserve_items[name] then
+        if preserve_items[name] then
+            prop.Key = "APItem"
+        elseif DELETE_LOCATION_ITEMS then
             destroyItem = true
         end
     elseif lock_until_ap_item[name] and any(item_list, function(val) return GetAPItemNameFromId(val.item) == item_map[name] end) then
@@ -180,15 +182,16 @@ function CheckFuseHealth(index, obj)
     end
 
     local broken_increase = new_broken - old_broken
-    local increase = new_health - old_health + (broken_increase > 0 and broken_increase or 0)
-    print(obj:GetFName():ToString() .. " health: " .. new_health .. " (" .. increase .. ")")
-    fuse_debt[index] = fuse_debt[index] and fuse_debt[index] + increase or increase
+    local increase = new_health - old_health
+    local corrected_increase = increase + (broken_increase > 0 and broken_increase or 0)
+    print(obj:GetFName():ToString() .. " health: " .. new_health .. " (" .. increase .. "," .. corrected_increase .. ")")
+    fuse_debt[index] = fuse_debt[index] and fuse_debt[index] + corrected_increase or corrected_increase
     if fuse_debt[index] > 0 then
-        increase = fuse_debt[index]
+        corrected_increase = fuse_debt[index]
         fuse_debt[index] = 0
-        return increase
+        return corrected_increase
     else
-        return 0
+        return math.min(increase, 0)
     end
 end
 
@@ -201,6 +204,15 @@ function CheckDeathLink()
 end
 
 function RegisterAllHooks()
+    local saveslot = GetSaveSlot()
+    if saveslot then
+        -- Only run this on the actual map
+        if saveslot.mainMap:ToString() ~= "Untitled_1" then return end
+    else
+        -- Can't verify map
+        return
+    end
+
     RegisterUniqueHook("/Game/objects/prop.prop_C:playerGrabbed_pre", function(self, player, collected)
         if OnTouchProp(self:get()) then
             player:get():dropGrabObject()
@@ -302,12 +314,22 @@ function RegisterAllHooks()
         SendNextLocation("Repair Server")
     end)
     RegisterUniqueHook("/Game/objects/misc/coordRadarDish.coordRadarDish_C:updFuses", function(self)
-        for i=1,CheckFuseHealth(self:get().ID, self:get()) do
+        local increase = CheckFuseHealth(self:get().ID, self:get())
+        local pending = GetPendingFuseBlowouts()
+        if increase < 0 and pending > 0 then
+            SetPendingFuseBlowouts(math.max(0, pending + increase))
+        end
+        for i=1,increase do
             SendNextLocation("Replace Fuse")
         end
     end)
     RegisterUniqueHook("/Game/objects/radiotower.radiotower_C:updFuses", function(self)
-        for i=1,CheckFuseHealth(3, self:get()) do
+        local increase = CheckFuseHealth(3, self:get())
+        local pending = GetPendingFuseBlowouts()
+        if increase < 0 and pending > 0 then
+            SetPendingFuseBlowouts(math.max(0, pending + increase))
+        end
+        for i=1,increase do
             SendNextLocation("Replace Fuse")
         end
     end)
@@ -372,6 +394,10 @@ function RegisterAllHooks()
         SendLocation("Light the " .. dir .. " Candle")
     end)
 
+    RegisterUniqueHook("/Game/objects/greenfire.greenfire_C:extinguishFire", function(self)
+        SendLocation("Extinguish the Green Fire")
+    end)
+
     -- Day Looping
     RegisterUniqueHook("/Game/objects/misc/daynightCycle.daynightCycle_C:ReceiveTick", function(self, DeltaSeconds)
         if ap == nil then return end
@@ -419,28 +445,37 @@ function RegisterAllHooks()
         self:get().Out:Open(true)
     end)
 
+    RegisterUniqueHook("/Game/main/mainGamemode.mainGamemode_C:setPower", function(self, active_calc, active_downl, active_coords, active_play, active_light)
+        local Gamemode = GetGameMode()
+        if Gamemode:IsValid() then
+            if active_calc:get() and locked_breakers.calculations then Gamemode.eventer.event_solar:runTrigger(Gamemode, 0) end
+            if active_downl:get() and locked_breakers.download then Gamemode.eventer.event_solar:runTrigger(Gamemode, 0) end
+            if active_coords:get() and locked_breakers.coordinates then Gamemode.eventer.event_solar:runTrigger(Gamemode, 0) end
+            if active_play:get() and locked_breakers.playing then Gamemode.eventer.event_solar:runTrigger(Gamemode, 0) end
+        end
+    end)
+
     RegisterUniqueHook("/Game/main/mainPlayer.mainPlayer_C:ragdollMode", function(self, ragdoll, passOut, death)
         if death:get() then CheckDeathLink() end
     end)
 
-    RegisterUniqueHook("/Game/main/mainGamemode.mainGamemode_C:debugtp", function(self)
-        local player = GetPawn()
-        if player:IsValid() then
-            player:teleportWObackrooms({ Translation = { X = -37692, Y = 69673, Z = 6480 } }, false, true) -- Game start position
-            AddHint("Due to the AP mod, the Debug TP now brings you to the start of the game", HintType.Info)
-        end
-    end)
-    RegisterUniqueHook("/Game/objects/prop_donut.prop_donut_C:ExecuteUbergraph_prop_donut", function(self, EntryPoint)
-        local player = GetPawn()
-        if player:IsValid() then
-            player:teleportWObackrooms({ Translation = { X = -37692, Y = 69673, Z = 6480 } }, false, true) -- Game start position
-            AddHint("Due to the AP mod, the donut now brings you to the start of the game", HintType.Info)
-        end
-    end)
+    -- RegisterUniqueHook("/Game/main/mainGamemode.mainGamemode_C:debugtp", function(self)
+    --     local player = GetPawn()
+    --     if player:IsValid() then
+    --         player:teleportWObackrooms({ Translation = { X = -37692, Y = 69673, Z = 6480 } }, false, true) -- Game start position
+    --         AddHint("Due to the AP mod, the Debug TP now brings you to the start of the game", HintType.Info)
+    --     end
+    -- end)
+    -- RegisterUniqueHook("/Game/objects/prop_donut.prop_donut_C:ExecuteUbergraph_prop_donut", function(self, EntryPoint)
+    --     local player = GetPawn()
+    --     if player:IsValid() then
+    --         player:teleportWObackrooms({ Translation = { X = -37692, Y = 69673, Z = 6480 } }, false, true) -- Game start position
+    --         AddHint("Due to the AP mod, the donut now brings you to the start of the game", HintType.Info)
+    --     end
+    -- end)
 
     CheckDailyTask()
-    local static_radio = StaticFindObject("/Game/objects/radiotower.radiotower_C")
-    local radiotower = FindObject(static_radio, GetWorld(), "radiotower", true)
+    local radiotower = FindFirstOf("radiotower_C")
     CheckFuseHealth(3, radiotower)
     local coordRadars = FindAllOf("coordRadarDish_C")
     for _, radar in ipairs(coordRadars or {}) do
@@ -495,7 +530,8 @@ RegisterKeyBind(Key.F7, function()
             end
         end
         print("No notebook")
-        --auto_map["Ragdoll Trap"].run()
+        --LockBreakers({ ["Playing Breaker"] = 1 })
+        --TryToBlowoutRandomFuse()
         --LockRecipes({"Metal Scrap Recipe"})
         --UnlockRecipe("Metal Scrap Recipe")
         --complex_item_map["Bunker Keycard"]()
@@ -555,10 +591,8 @@ RegisterConsoleCommandHandler("host_timescale", function(FullCommand, Parameters
 end)
 
 RegisterConsoleCommandHandler("connect", function(FullCommand, Parameters)
-    -- debug
     if #Parameters < 2 then
-        connectToAp("archipelago.gg:57875", "NathanR_VOTV", "")
-        return true
+        return false
     end
     local password = ""
     if #Parameters == 3 then
@@ -570,5 +604,40 @@ end)
 
 RegisterConsoleCommandHandler("disconnect", function(FullCommand, Parameters)
     disconnect()
+    return true
+end)
+
+RegisterConsoleCommandHandler("release", function(FullCommand, Parameters)
+    SendLocation(Parameters[1])
+    return true
+end)
+
+RegisterConsoleCommandHandler("panic", function(FullCommand, Parameters)
+    if #Parameters < 1 then
+        return false
+    end
+    for _, item in ipairs(item_list) do
+        if item.flags & 1 > 0 then
+            local item_name = GetAPItemNameFromId(item.item)
+            if item_name == Parameters[1] then
+                if auto_map[item_name] then
+                    AddHint("You cannot replay auto redeemed items", HintType.Error)
+                    return true
+                end
+                local complex_item = complex_item_map[item_name]
+                if complex_item then
+                    complex_item()
+                    return true
+                end
+                local internal_name = inverse_item_map[string.lower(item_name)]
+                if internal_name ~= nil then
+                    AddHint("Giving " .. item_name, HintType.Info)
+                    GiveItem(internal_name)
+                    return true
+                end
+            end
+        end
+    end
+    AddHint("Unknown or not yet received item\nNote: You can only panic in progression items", HintType.Error)
     return true
 end)

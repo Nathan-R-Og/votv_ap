@@ -16,9 +16,9 @@ require("utils")
 
 -- global to this mod
 local game_name = "Voices of the Void"
-local items_handling = AP.Permission.AUTO_ENABLED  -- full remote
+local items_handling = 7  -- receive everything
 local client_version = {0, 6, 7}
-local mod_version = {0, 5, 0}
+local mod_version = {0, 6, 0}
 local message_format = AP.RenderFormat.TEXT
 ---@type APClient
 ap = nil
@@ -89,7 +89,7 @@ function connect(_server, _slot, _password)
         if slot_data.Version then
             local mod_version_str = table.concat(mod_version, ".")
             local ap_version_str = table.concat(slot_data.Version, ".")
-            local suffix = " (Mod: " .. ap_version_str .. ", AP: " .. ap_version_str .. ")"
+            local suffix = " (Mod: " .. mod_version_str .. ", AP: " .. ap_version_str .. ")"
             if slot_data.Version[1] ~= mod_version[1] then
                 AddHint("Major version difference with the apworld!!" .. suffix, HintType.Error)
             elseif slot_data.Version[2] ~= mod_version[2] then
@@ -115,11 +115,31 @@ function connect(_server, _slot, _password)
             ap:ConnectUpdate(nil, {"Lua-APClientPP", "DeathLink"})
         end
 
-        LockUpgradeControls(slot_data.ItemNames)
-        LockShopItems(slot_data.ItemNames)
-        LockRecipes(slot_data.ItemNames)
+        local laptop = FindWithErrorHint("ui_laptop_C")
+        local power_control = FindWithErrorHint("powerControl_C")
+        local storeDatatable = StaticFindWithErrorHint("/Game/main/datatables/list_store.list_store")
+        local recipesDatatable = StaticFindWithErrorHint("/Game/main/datatables/list_craftRecipes.list_craftRecipes")
+        local propDatatable = StaticFindWithErrorHint("/Game/main/datatables/list_props.list_props")
+        for name, _ in pairs(slot_data.ItemNames) do
+            LockUpgradeControls(laptop, name)
+            LockBreakers(laptop, power_control, name)
+        end
+        -- TODO: See how much those can be optimized, and also how much we can optimize replaying the items
+        LockShopItemsAndRecipes(storeDatatable, recipesDatatable, propDatatable, slot_data.ItemNames)
+        LockRecipes(recipesDatatable, slot_data.ItemNames)
         LockDoors(slot_data.ItemNames)
         CheckUnobtainableWorldItemLocations()
+        
+        -- Probably the first time this save has been loaded on Archipelago: kill the breakers if any of them got locked
+        for _, data in pairs(item_to_breaker) do
+            if locked_breakers[data[1]] and power_control[data[5]] then
+                -- Calling the solar function doesn't play the solar event sound
+                power_control:solar()
+                break
+            end
+        end
+
+        ap:StatusUpdate(AP.ClientStatus.PLAYING)
     end
 
     function on_slot_refused(reasons)
@@ -286,24 +306,24 @@ function connectToAp(host, slot, password)
 
     LoopAsync(200, function()
         if ap == nil then return false end
-        xpcall(function()
-            ap:poll()
-            -- AddHint("Polling!", HintType.Info)
-            if #LocationsToCheck > 0 and #LocationsToCheck > #CheckedLocations then
-                local only_new_ones = {}
-                local i = #CheckedLocations
-                while i < #LocationsToCheck do
-                    table.insert(only_new_ones, LocationsToCheck[i+1])
-                    i = i + 1
-                end
-                ap:LocationChecks(only_new_ones)
-                for _, APID in ipairs(LocationsToCheck) do
-                    CheckedLocations[APID] = true
-                end
+        ap:poll()
+        -- AddHint("Polling!", HintType.Info)
+        if #LocationsToCheck > 0 and #LocationsToCheck > #CheckedLocations then
+            local only_new_ones = {}
+            local i = #CheckedLocations
+            while i < #LocationsToCheck do
+                table.insert(only_new_ones, LocationsToCheck[i+1])
+                i = i + 1
             end
-        end, function()
-            ap:disconnect()
-        end)
+            ap:LocationChecks(only_new_ones)
+            for _, APID in ipairs(LocationsToCheck) do
+                CheckedLocations[APID] = true
+            end
+        end
+
+        if GetPendingFuseBlowouts() > 0 then
+            TryToBlowoutRandomFuse()
+        end
         return false
     end)
 end

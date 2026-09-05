@@ -61,6 +61,18 @@ function SpawnSomething(name)
     return CreateInvalidObject()
 end
 
+function FindWithErrorHint(name)
+    local obj = FindFirstOf(name)
+    if not obj:IsValid() then AddHint("Failed to find " .. name, HintType.Error) end
+    return obj
+end
+
+function StaticFindWithErrorHint(name)
+    local obj = StaticFindObject(name)
+    if not obj:IsValid() then AddHint("Failed to find " .. name, HintType.Error) end
+    return obj
+end
+
 -- function SendViaDrone()
 --     local drone_class = StaticFindObject("/Game/objects/drone.drone_C")
 --     local drone = FindObject(drone_class, GetWorld(), "drone", true)
@@ -418,60 +430,56 @@ function Upgrade(name)
     return true
 end
 
-function LockUpgradeControls(item_names)
-    local laptop = FindFirstOf("ui_laptop_C")
-    if not laptop or not laptop:IsValid() then
-        AddHint("Failed to disable upgrade controls", HintType.Error)
-    else
-        local upgrades = {}
-        for name, _ in pairs(item_names) do
-            local upgrade = item_to_upgrade[name]
-            if upgrade then
-                table.insert(upgrades, upgrade)
-            end
-        end
-        print("Disabling controls of " .. table.concat(upgrades, ", "))
-        for _, name in ipairs(upgrades) do
-            local compName = upgradeFullNames[name][2]
-            laptop[compName].button_upgDown:SetVisibility(2) -- Hidden
-            laptop[compName].button_upgUp:SetVisibility(2) -- Hidden
-        end
-    end
+function LockUpgradeControls(laptop, item_name)
+    local upgrade = item_to_upgrade[item_name]
+    if not upgrade then return end
+    print("Disabling controls of " .. upgrade)
+    local compName = upgradeFullNames[upgrade][2]
+    laptop[compName].button_upgDown:SetVisibility(2) -- Hidden
+    laptop[compName].button_upgUp:SetVisibility(2) -- Hidden
 end
 
-function LockShopItems(item_names)
-    local storeDatatable = StaticFindObject("/Game/main/datatables/list_store.list_store")
-    local propDatatable = StaticFindObject("/Game/main/datatables/list_props.list_props")
-    if storeDatatable:IsValid() and propDatatable:IsValid() then
-        local propAsItems = {}
-        propDatatable:ForEachRow(function(name, data)
-            for item, _ in pairs(item_names) do
-                if string.lower(data.displayName_8_FE83ADBF40AA162942FCE589F5806DD2:ToString()) == string.lower(item) then
-                    if not itemToProps[item] then itemToProps[item] = {} end
-                    table.insert(itemToProps[item], name)
-                end
-            end
-        end)
-        for _, list in pairs(itemToProps) do
-            for i, v in ipairs(list) do
-                table.insert(propAsItems, v)
+function LockShopItemsAndRecipes(storeDatatable, recipesDatatable, propDatatable, item_names)
+    local propAsItems = {}
+    propDatatable:ForEachRow(function(name, data)
+        for item, _ in pairs(item_names) do
+            if string.lower(data.displayName_8_FE83ADBF40AA162942FCE589F5806DD2:ToString()) == string.lower(item) then
+                if not itemToProps[item] then itemToProps[item] = {} end
+                table.insert(itemToProps[item], name)
             end
         end
-        print("Total items to check: " .. #propAsItems)
-        storeDatatable:ForEachRow(function(name, data)
-            local achievement = data.achievementUnlock_38_883E827740DCBD0E996CF9B74B755175:ToString()
-            if array_contains(propAsItems, name) then
-                if string.startswith(achievement, "__APLOCK__") then
-                    print(name .. " is already disabled")
-                else
-                    print("Disabling " .. name .. " from shop")
-                    data.achievementUnlock_38_883E827740DCBD0E996CF9B74B755175 = FName("__APLOCK__" .. achievement)
-                end
-            end
-        end)
-    else
-        AddHint("Failed to remove shop items", HintType.Error)
+    end)
+    for _, list in pairs(itemToProps) do
+        for i, v in ipairs(list) do
+            table.insert(propAsItems, v)
+        end
     end
+    print("Total items to check: " .. #propAsItems)
+    storeDatatable:ForEachRow(function(name, data)
+        local achievement = data.achievementUnlock_38_883E827740DCBD0E996CF9B74B755175:ToString()
+        if array_contains(propAsItems, name) then
+            if string.startswith(achievement, "__APLOCK__") then
+                print(name .. " is already disabled")
+            else
+                print("Disabling " .. name .. " from shop")
+                data.achievementUnlock_38_883E827740DCBD0E996CF9B74B755175 = FName("__APLOCK__" .. achievement)
+            end
+        end
+    end)
+    recipesDatatable:ForEachRow(function(name, data)
+        local result = data.result_6_893C01EE4438C4AAF7E917954BB7F448
+        if #result < 1 then return end
+        local fname = result[1]:ToString()
+        if array_contains(propAsItems, fname) then
+            local blueprint = data.blueprint_9_1946A61745B0008C0F2F268F1D73DB38:ToString()
+            if string.startswith(blueprint, "__APLOCK__") then
+                print(name .. " is already disabled")
+            else
+                print("Disabling " .. name .. " recipe")
+                data.blueprint_9_1946A61745B0008C0F2F268F1D73DB38 = FString("__APLOCK__" .. blueprint)
+            end
+        end
+    end)
 end
 
 local recipeResultToItemName = {
@@ -484,27 +492,22 @@ local recipeResultToItemName = {
     ["scrap_wood"] = "Wood Scrap Recipe",
     ["scrap_rubble"] = "Rubble Recipe",
 }
-function LockRecipes(item_names)
-    local datatable = StaticFindObject("/Game/main/datatables/list_craftRecipes.list_craftRecipes")
-    if datatable:IsValid() then
-        datatable:ForEachRow(function(name, data)
-            local result = data.result_6_893C01EE4438C4AAF7E917954BB7F448
-            if #result < 1 then return end
-            local fname = result[1]:ToString()
-            local item = recipeResultToItemName[fname]
-            if item and item_names[item] then
-                local blueprint = data.blueprint_9_1946A61745B0008C0F2F268F1D73DB38:ToString()
-                if string.startswith(blueprint, "__APLOCK__") then
-                    print(name .. " is already disabled")
-                else
-                    print("Disabling " .. name .. " recipe")
-                    data.blueprint_9_1946A61745B0008C0F2F268F1D73DB38 = FString("__APLOCK__" .. blueprint)
-                end
+function LockRecipes(datatable, item_names)
+    datatable:ForEachRow(function(name, data)
+        local result = data.result_6_893C01EE4438C4AAF7E917954BB7F448
+        if #result < 1 then return end
+        local fname = result[1]:ToString()
+        local item = recipeResultToItemName[fname]
+        if item and item_names[item] then
+            local blueprint = data.blueprint_9_1946A61745B0008C0F2F268F1D73DB38:ToString()
+            if string.startswith(blueprint, "__APLOCK__") then
+                print(name .. " is already disabled")
+            else
+                print("Disabling " .. name .. " recipe")
+                data.blueprint_9_1946A61745B0008C0F2F268F1D73DB38 = FString("__APLOCK__" .. blueprint)
             end
-        end)
-    else
-        AddHint("Failed to lock recipes", HintType.Error)
-    end
+        end
+    end)
 end
 
 entrance_to_door = {
@@ -535,11 +538,11 @@ function LockDoors(item_names)
             local index = tonumber(item:sub(3,3))
             for _, tr in ipairs(FindAllOf("generatorBuilding_C")) do
                 if tr.trNum == index - 1 then
-                    if tr.door2.ChildActor.jammed then
+                    if tr.door2.ChildActor.superClosed then
                         print("Door of TR" .. index .. " was already jammed")
                     else
                         print("Jamming door of TR" .. index)
-                        tr.door2.ChildActor:jam(false)
+                        tr.door2.ChildActor.superClosed = true
                     end
                 end
             end
@@ -553,13 +556,35 @@ function LockDoors(item_names)
 
     for _, door in ipairs(FindAllOf("door_C")) do
         if doors_to_lock[door.Key:ToString()] then
-            if door.jammed then
+            if door.superClosed then
                 print("Door " .. door.Key:ToString() .. " was already jammed")
             else
                 print("Jamming door " .. door.Key:ToString())
-                door:jam(false)
+                door.superClosed = true
             end
         end
+    end
+end
+
+locked_breakers = {
+    calculations = false,
+    download = false,
+    coordinates = false,
+    playing = false
+}
+item_to_breaker = {
+    ["Processing Breaker"] = {"calculcations", "text_calc", "breakerComp_calc", "Processing", "press_calc"},
+    ["Download Breaker"] = {"download", "text_downloading", "breakerComp_down", "Download", "press_downl"},
+    ["Coordinates Breaker"] = {"coordinates", "text_coords", "breakerComp_coord", "Coordinates", "press_coord"},
+    ["Playing Breaker"] = {"playing", "text_playing", "breakerComp_play", "Playing", "press_play"}
+}
+function LockBreakers(laptop, power_control, item_name)
+    local data = item_to_breaker[item_name]
+    if data then
+        print("Locking " .. item_name)
+        locked_breakers[data[1]] = true
+        power_control[data[2]]:SetText(FString("[BROKEN]"))
+        laptop[data[3]].DisplayName = FText("[BROKEN]")
     end
 end
 
@@ -637,11 +662,30 @@ function CheckShopAndControlsUnlock(name, show_hint)
         local props = itemToProps[group.group]
         local upgrade = item_to_upgrade[group.group]
         if count == 0 then
-            if props then UnlockShopItems(props, show_hint) end
+            if props then 
+                UnlockShopItems(props, show_hint)
+                for _, prop in ipairs(props) do UnlockRecipe(prop) end
+            end
             if upgrade then EnableUpgradeControls(upgrade, show_hint) end
         else
             print("Still missing " .. count .. " " .. group.group .. " to unlock shop")
         end
+    end
+end
+
+function UnlockBreaker(item_name)
+    local laptop = FindFirstOf("ui_laptop_C")
+    local power_control = FindFirstOf("powerControl_C")
+    if laptop:IsValid() and power_control:IsValid() then
+        local data = item_to_breaker[item_name]
+        if data then
+            print("Unlocking " .. item_name)
+            locked_breakers[data[1]] = false
+            power_control[data[2]]:SetText(FString(data[4]))
+            laptop[data[3]].DisplayName = FText(data[4])
+        end
+    else
+        AddHint("Failed to unlock breaker", HintType.Error)
     end
 end
 
@@ -652,7 +696,7 @@ function UnlockDoor(item_name)
         for _, tr in ipairs(FindAllOf("generatorBuilding_C")) do
             if tr.trNum == index - 1 then
                 print("Unjamming door of TR" .. index)
-                tr.door2.ChildActor.jammed = false
+                tr.door2.ChildActor.superClosed = false
             end
         end
         return
@@ -661,20 +705,20 @@ function UnlockDoor(item_name)
     for _, door in ipairs(FindAllOf("door_C")) do
         if door.Key:ToString() == entrance_to_door[item_name] then
             print("Unjamming door " .. door.Key:ToString())
-            door.jammed = false
+            door.superClosed = false
         end
     end
 end
 
-function UnlockRecipe(recipe_name)
+function UnlockRecipe(recipe_or_result_name)
     local datatable = StaticFindObject("/Game/main/datatables/list_craftRecipes.list_craftRecipes")
     if datatable:IsValid() then
         datatable:ForEachRow(function(name, data)
             local result = data.result_6_893C01EE4438C4AAF7E917954BB7F448
             if #result < 1 then return end
             local fname = result[1]:ToString()
-            local unlock_name = recipeResultToItemName[fname]
-            if unlock_name == recipe_name then
+            local unlock_name = recipeResultToItemName[fname] or fname
+            if unlock_name == recipe_or_result_name then
                 local blueprint = data.blueprint_9_1946A61745B0008C0F2F268F1D73DB38:ToString()
                 if string.startswith(blueprint, "__APLOCK__") then
                     print("Enabling " .. name .. " recipe")
@@ -685,7 +729,7 @@ function UnlockRecipe(recipe_name)
             end
         end)
     else
-        AddHint("Failed to unlock " .. recipe_name, HintType.Error)
+        AddHint("Failed to unlock recipe " .. recipe_or_result_name, HintType.Error)
     end
 end
 
@@ -724,4 +768,32 @@ function EnableUpgradeControls(upgrade, show_hint)
     else
         AddHint("Failed to enable upgrade controls", HintType.Error)
     end
+end
+
+function TryToBlowoutRandomFuse()
+    local can_blow_out = {}
+    local radiotower = FindFirstOf("radiotower_C")
+    radiotower.fuses:ForEach(function(i, e)
+        if e:get() == 1 then
+            table.insert(can_blow_out, radiotower)
+            return true
+        end
+    end)
+    local coordRadars = FindAllOf("coordRadarDish_C")
+    for _, radar in ipairs(coordRadars or {}) do
+        radar.fuses:ForEach(function(i, e)
+            if e:get() == 1 then
+                table.insert(can_blow_out, radar)
+                return true
+            end
+        end)
+    end
+    print("Can blow out: " .. #can_blow_out)
+    if #can_blow_out == 0 then
+        return false
+    end
+    local index = math.random(1, #can_blow_out)
+    print(can_blow_out[index]:GetFullName())
+    can_blow_out[index]:breakdown()
+    return true
 end

@@ -96,6 +96,25 @@ locationKeys = {
     ["hCxt6-EcwcEjSaMhNcB9GA"] = "Badge 1",
     ["oYk54e4oDJh5tByJhjXkkg"] = "Badge 2",
 
+    ["Hp5DFsfk8c2gnjXutTkUfA"] = "Garage Gas Can 1",
+    ["OzmehfzB4GyCwmxiEvdYMg"] = "Garage Gas Can 2",
+    ["imTRzn8iBDChHiukyVuSVw"] = "Garage Gas Can 3",
+    ["__FjZsQpcWOhW78IOyu0OA"] = "Utility Closet Gas Can",
+    ["Uctuha6YmYlT0rA1vJSxnw"] = "Signal Lab Gas Can",
+    ["NfGDqxD64mWYfzzd3t3KdQ"] = "Substation Gas Can",
+    ["VrTFQyoByMJT0qtOT0N15A"] = "TR1 Gas Can 1",
+    ["NWfDBqc3Gut-X9w6D26oKQ"] = "TR1 Gas Can 2",
+    ["9Vhg4v17ghnCLKwjR_ST9g"] = "TR1 Gas Can 3",
+    ["eJoturOaXtiH09RUvIAwXA"] = "TR1 Gas Can 4",
+    ["zPQnuupMQUEZuFJPaZeLYg"] = "TR1 Gas Can 5",
+    ["swSnLb9Kz_-h19Ykxe87LQ"] = "TR2 Gas Can 1",
+    ["RteBnW1F2Pp0Ffkkjz1S5Q"] = "TR2 Gas Can 2",
+    ["LQNjyHpuaC8p-jigco9tYA"] = "TR2 Gas Can 3",
+    ["j6A9LXf0XLxFXe7gjqja8g"] = "TR2 Gas Can 4",
+    ["wZuaIXKARVlgM_YtdIh_Ng"] = "TR3 Gas Can 1",
+    ["k2lmIU5bZuXz1fxVTgT0Gg"] = "Hole Gas Can 1",
+    ["PplIJzPJybeRw9nC9zuzrw"] = "Hole Gas Can 2",
+
     ["0FDYWvOAvoMu6mkGVanVBA"] = "Alpha Toolbox",
     ["vVZg8phEVRRxPxYAYoU2Cw"] = "Hole Toolbox",
     ["QyPfxyhodBwqmXWba-ajDg"] = "Green Hatch Toolbox",
@@ -129,7 +148,7 @@ locationKeys = {
     ["d7j6lkuG9rIHWpyXEFuHSA"] = "Hole Gas Welder",
     ["VvsuJMi3Bbn0rfW12bIMQA"] = "Well Hook 1",
     ["EMjUBaWgzdolXRqj-Jt7cw"] = "Well Hook 2",
-    ["lamp"]                   = "Lantern",
+    -- ["lamp"]                   = "Lantern",  -- Disabled for randomizing its key
     ["Ogy2hSHlugscjEgf6FG5xw"] = "Radioactive Capsule Blueprint",
     ["t1aTxOgJ7J7rhxlo1yFvMw"] = "Bike Helmet",
     ["_peaGTh2lZ6AVxISqYmr7w"] = "Jar of Honey",
@@ -165,7 +184,7 @@ locationKeys = {
     ["ff_htrophy_1"]           = "Deer Trophy Head",
     ["ff_htrophy_2"]           = "Goat Trophy Head",
     ["rLt3NxFnKUisbdNTqVioVg"] = "Buried Drive Box",
-    ["shrimp"]                 = "Shrimp Pack",
+    -- ["shrimp"]                 = "Shrimp Pack",  -- Disabled for randomizing its key
 
     ["slab_0"]                 = "Fire Tablet",
     ["slab_1"]                 = "Air Tablet",
@@ -213,16 +232,23 @@ lock_until_ap_item = {
     ["eriePlush"] = true,
     ["abplush"] = true,
     ["rad"] = true,
+    ["llama"] = true,
+    ["thiccfus"] = true,
+    ["dingus"] = true,
+    ["argemwell"] = true,
+    ["gnarpwell"] = true,
+    ["eriewell"] = true,
 
     -- In containers
     ["kerfsp_0"] = true,
+    ["kerfoout_maid"] = true,
     ["physmodule_spectrogram"] = true
 }
 
 createdGoals = {
-    ["/Game/objects/prop_kerfurOmega_0.prop_kerfurOmega_0_C"] = 0, -- Kerfur-Omega
-    ["/Game/objects/prop_h.prop_h_C"] = 1, -- Hell Rock
-    ["/Game/objects/prop_argw.prop_argw_C"] = 2, -- White Argemia Plush
-    ["/Game/objects/prop_argbl.prop_argbl_C"] = 3, -- Black Argemia Plush
-    ["/Game/objects/prop_lambert.prop_lambert_C"] = 4 -- Lambert Plush
+    ["/Game/objects/prop_kerfurOmega_0.prop_kerfurOmega_0_C"] = 0,  -- Kerfur-Omega
+    ["/Game/objects/prop_h.prop_h_C"] = 1,  -- Hell Rock
+    ["/Game/objects/prop_argw.prop_argw_C"] = 2,  -- White Argemia Plush
+    ["/Game/objects/prop_argbl.prop_argbl_C"] = 3,  -- Black Argemia Plush
+    ["/Game/objects/prop_lambert.prop_lambert_C"] = 4  -- Lambert Plush
 }
