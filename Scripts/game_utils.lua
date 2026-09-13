@@ -13,6 +13,7 @@ end
 local GameMode = nil
 function GetGameMode()
     if GameMode == nil or not GameMode:IsValid() then GameMode = GetGameplayStatics():GetGameMode(GetWorld()) end
+    if GameMode == nil or not GameMode:IsValid() then GameMode = FindFirstOf("mainGamemode_C") end  -- Safety measure
     return GameMode
 end
 

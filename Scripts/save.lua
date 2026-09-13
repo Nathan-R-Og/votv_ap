@@ -19,6 +19,8 @@ function GetAPNotebook()
         AP_NOTEBOOK.Key = FName("__AP_NOTEBOOK__")
         AP_NOTEBOOK.Text[1] = FString(server .. "," .. slot .. "," .. password)
         AP_NOTEBOOK:upd()
+    else
+        print("Existing AP notebook")
     end
     return AP_NOTEBOOK
 end

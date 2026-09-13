@@ -136,7 +136,7 @@ function OnTouchProp(prop)
     if collected then
         AddCheckedLocationName(location)
         if preserve_items[name] then
-            prop.Key = "APItem"
+            prop.Key = FName("APItem")
         elseif DELETE_LOCATION_ITEMS then
             destroyItem = true
         end
@@ -207,7 +207,8 @@ function RegisterAllHooks()
     local saveslot = GetSaveSlot()
     if saveslot then
         -- Only run this on the actual map
-        if saveslot.mainMap:ToString() ~= "Untitled_1" then return end
+        print("Not a main save")
+        if saveslot.Level:ToString() ~= "Untitled_1" then return end
     else
         -- Can't verify map
         return
@@ -502,17 +503,15 @@ function RegisterAllHooks()
         end
     end
 
-    if not ap then
+    LoopAsync(30000, function()
+        if ap then return true end
         AddHint("Remember to connect to Archipelago!", HintType.Thought)
-        LoopAsync(30000, function()
-            if ap then return true end
-            AddHint("Remember to connect to Archipelago!", HintType.Thought)
-            return false
-        end)
-    end
+        return false
+    end)
 end
 
-RegisterKeyBind(Key.F8, function()
+RegisterKeyBind(Key.F8, {ModifierKey.CONTROL}, function()
+    disconnect()
     ExecuteInGameThread(function()
         RegisterAllHooks()
     end)
@@ -521,15 +520,15 @@ end)
 RegisterKeyBind(Key.F7, function()
     ExecuteInGameThread(function()
         AddHint("Debug shortcut", HintType.Warning)
-        local notebooks = FindAllOf("prop_notebook_C")
-        for _, notebook in ipairs(notebooks) do
-            if notebook.Key:ToString() == "__AP_NOTEBOOK__" then
-                print("Found AP notebook")
-                print(notebook)
-                return
-            end
+        local notebook = FindAPNotebook()
+        if notebook then
+            print("Found AP notebook")
+            print(notebook)
+        else
+            print("No notebook")
         end
-        print("No notebook")
+        -- print(GetGameMode():GetFullName())
+        -- print(FindFirstOf("mainGamemode_C"):GetFullName())
         --LockBreakers({ ["Playing Breaker"] = 1 })
         --TryToBlowoutRandomFuse()
         --LockRecipes({"Metal Scrap Recipe"})
@@ -537,8 +536,6 @@ RegisterKeyBind(Key.F7, function()
         --complex_item_map["Bunker Keycard"]()
         -- local pos = GetPawn():K2_GetActorLocation()
         -- print(pos.X .. "/" .. pos.Y .. "/" .. pos.Z)
-
-        -- SendLocation("Basement Stairs Sandwich")
 
         -- local storeDatatable = StaticFindObject("/Game/main/datatables/list_store.list_store")
         -- local propDatatable = StaticFindObject("/Game/main/datatables/list_props.list_props")

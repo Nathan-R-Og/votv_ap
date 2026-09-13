@@ -28,6 +28,8 @@ ScoutedLocations = {}
 MissingLocations = {}
 CheckedLocations = {}
 
+print("VOTV AP VERSION: " .. table.concat(mod_version, "."))
+
 options = nil
 slot_data = nil
 completed = false
