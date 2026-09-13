@@ -18,7 +18,7 @@ require("utils")
 local game_name = "Voices of the Void"
 local items_handling = 7  -- receive everything
 local client_version = {0, 6, 7}
-local mod_version = {0, 6, 1}
+local mod_version = {0, 6, 2}
 local message_format = AP.RenderFormat.TEXT
 ---@type APClient
 ap = nil

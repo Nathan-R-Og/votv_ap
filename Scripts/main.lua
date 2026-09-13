@@ -204,13 +204,16 @@ function CheckDeathLink()
 end
 
 function RegisterAllHooks()
-    local saveslot = GetSaveSlot()
-    if saveslot then
+    local Gamemode = GetGameMode()
+    if Gamemode then
         -- Only run this on the actual map
-        print("Not a main save")
-        if saveslot.Level:ToString() ~= "Untitled_1" then return end
+        if Gamemode.isMainMenu then
+            print("On main menu")
+            return
+        end
     else
         -- Can't verify map
+        print("No gamemode")
         return
     end
 
@@ -527,6 +530,7 @@ RegisterKeyBind(Key.F7, function()
         else
             print("No notebook")
         end
+        -- print(GetGameMode().isMainMenu)
         -- print(GetGameMode():GetFullName())
         -- print(FindFirstOf("mainGamemode_C"):GetFullName())
         --LockBreakers({ ["Playing Breaker"] = 1 })
@@ -567,7 +571,11 @@ RegisterHook("/Script/Engine.PlayerController:ClientRestart", function(self, New
     end
 
     RegisterUniqueHook("/Game/main/mainGamemode.mainGamemode_C:Load Primitives", function(self, in_canLoad, in_isSubData, in_loadingSubLevel)
-        RegisterAllHooks()
+        if not in_loadingSubLevel:get() then
+            RegisterAllHooks()
+        else
+            print("In sub level")
+        end
     end)
 end)
 
