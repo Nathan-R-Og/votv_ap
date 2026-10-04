@@ -271,7 +271,9 @@ function RegisterAllHooks()
         OnTouchProp(self:get())
     end)
     RegisterUniqueHook("/Game/objects/prop_container.prop_container_C:openContainer", function(self)
-        OnTouchProp(self:get())
+        if (OnTouchProp(self:get())) then
+            GetGameMode().propInventory:Exit()
+        end
     end)
     RegisterUniqueHook("/Game/objects/prop.prop_C:GetName", function(self, DisplayName, propname)
         local key = self:get().Key:ToString()
@@ -535,6 +537,14 @@ function RegisterAllHooks()
     LoadNotebookData()
     LoopAsync(30000, function()
         if ap then return true end
+        local Gamemode = GetGameMode()
+        if Gamemode then
+            -- Only run this on the actual map
+            if Gamemode.isMainMenu then
+                print("On main menu")
+                return true
+            end
+        end
         AddHint("Remember to connect to Archipelago!", HintType.Thought)
         return false
     end)
@@ -557,10 +567,10 @@ RegisterKeyBind(Key.F7, function()
         else
             AddHint("No notebook", HintType.Warning)
         end
-        AppendItemsHint("A", false)
-        AppendItemsHint("B", false)
-        AppendItemsHint("C", false)
-        SendItemsHint()
+        -- AppendItemsHint("A", false)
+        -- AppendItemsHint("B", false)
+        -- AppendItemsHint("C", false)
+        -- SendItemsHint()
         -- print(GetGameMode().isMainMenu)
         -- print(GetGameMode():GetFullName())
         -- print(FindFirstOf("mainGamemode_C"):GetFullName())
