@@ -20,6 +20,9 @@ local fuse_debt = {}
 --ap day items
 have_days = 0
 
+items_hint = ""
+items_hint_type = HintType.Info
+
 looking_at_location = -1
 
 local last_item_failed = false
@@ -37,7 +40,8 @@ function CheckAutoItem(i)
         end
         local auto_item = auto_map[item_name]
         if auto_item ~= nil then
-            AddHint(item_name .. " from " .. ap:get_player_alias(next_item.player), auto_item.hint)
+            items_hint = items_hint .. item_name .. " from " .. ap:get_player_alias(next_item.player) .. "\n"
+            UpdateItemsHintType(auto_item.hint)
             auto_item.run()
             CheckShopAndControlsUnlock(item_name, true)
             return CheckAutoItem(i+1)
@@ -45,6 +49,25 @@ function CheckAutoItem(i)
     end
     SetRecievedItems(i)
     SendItemsHint()
+end
+
+function AppendItemsHint(msg, same_line)
+    if #items_hint == 0 then
+        items_hint = msg
+    else
+        if not same_line then msg = "\n" .. msg end
+        items_hint = items_hint .. msg
+    end
+end
+
+function UpdateItemsHintType(hint_type)
+    if (
+        hint_type == HintType.Error
+        or hint_type == HintType.Warning and items_hint_type ~= HintType.Error
+        or hint_type == HintType.Thought and items_hint_type ~= HintType.Error and items_hint_type ~= HintType.Warning
+    ) then
+        items_hint_type = hint_type
+    end
 end
 
 function SendItemsHint()
@@ -59,10 +82,21 @@ function SendItemsHint()
     if item_count > 0 then
         local item = item_list[GetRecievedItems()+1]
         local item_name = GetAPItemNameFromId(item.item)
-        AddHint("You have " .. tostring(item_count) .. " unclaimed item(s).\nNext item is " .. item_name .. "\nPress F9 to claim.", HintType.Warning)
+        local player = ap:get_player_alias(item.player)
+        if #items_hint > 0 then
+            items_hint = items_hint .. "\n\n"
+        else
+            UpdateItemsHintType(HintType.Warning)
+        end
+        AddHint(items_hint .. "You have " .. tostring(item_count) .. " unclaimed item(s).\nNext item is " .. item_name .. " from " .. player .. "\nPress F9 to claim.", items_hint_type)
     else
-        AddHint("You have recieved all items. Yay!", HintType.Thought)
+        if #items_hint > 0 then
+            items_hint = items_hint .. "\n"
+        end
+        AddHint(items_hint .. "You have recieved all items. Yay!", items_hint_type)
     end
+    items_hint = ""
+    items_hint_type = HintType.Info
 end
 
 function GetNextItem()
@@ -71,7 +105,8 @@ function GetNextItem()
         local item = item_list[i+1]
         if item.index >= i then
             local item_name = GetAPItemNameFromId(item.item)
-            AddHint(item_name .. " from " .. ap:get_player_alias(item.player), HintType.Info)
+            local player = ap:get_player_alias(item.player)
+            AppendItemsHint(item_name .. " from " .. player, false)
             local complex_item = complex_item_map[item_name]
             if complex_item then
                 complex_item()
@@ -96,6 +131,8 @@ function GetNextItem()
         if laptop:IsValid() then
             laptop:genStore()
         end
+    else
+        SendItemsHint()
     end
 end
 
@@ -231,6 +268,9 @@ function RegisterAllHooks()
         OnTouchProp(self:get())
     end)
     RegisterUniqueHook("/Game/objects/prop.prop_C:player_use", function(self, player, collected)
+        OnTouchProp(self:get())
+    end)
+    RegisterUniqueHook("/Game/objects/prop_container.prop_container_C:openContainer", function(self)
         OnTouchProp(self:get())
     end)
     RegisterUniqueHook("/Game/objects/prop.prop_C:GetName", function(self, DisplayName, propname)
@@ -492,20 +532,7 @@ function RegisterAllHooks()
         droneAtBase = drone.flyingType == 1
     end
 
-    local notebook = GetAPNotebook()
-    if notebook and notebook:IsValid() then
-        local tokens = {}
-        local text = notebook.Text[1]:ToString() or ""
-        for token in string.gmatch(text, "[^,]*") do
-            table.insert(tokens, token)
-        end
-        if #tokens >= 3 and #tokens[1] > 0 and #tokens[2] > 0 then
-            connectToAp(tokens[1], tokens[2], tokens[3])
-        else
-            AddHint("An AP save was detected but the connection info seems to be invalid. Please reconnect manually", HintType.Warning)
-        end
-    end
-
+    LoadNotebookData()
     LoopAsync(30000, function()
         if ap then return true end
         AddHint("Remember to connect to Archipelago!", HintType.Thought)
@@ -525,11 +552,15 @@ RegisterKeyBind(Key.F7, function()
         AddHint("Debug shortcut", HintType.Warning)
         local notebook = FindAPNotebook()
         if notebook then
-            print("Found AP notebook")
+            AddHint("Found AP notebook", HintType.Warning)
             print(notebook)
         else
-            print("No notebook")
+            AddHint("No notebook", HintType.Warning)
         end
+        AppendItemsHint("A", false)
+        AppendItemsHint("B", false)
+        AppendItemsHint("C", false)
+        SendItemsHint()
         -- print(GetGameMode().isMainMenu)
         -- print(GetGameMode():GetFullName())
         -- print(FindFirstOf("mainGamemode_C"):GetFullName())
@@ -555,10 +586,10 @@ RegisterKeyBind(Key.F7, function()
     end)
 end)
 
-RegisterHook("/Script/Engine.PlayerController:ClientRestart", function(self, NewPawn)
+RegisterUniqueHook("/Script/Engine.PlayerController:ClientRestart", function(self, NewPawn)
     NotifyUniqueOnNewObject("/Game/main/mainPlayer.mainPlayer_C", function(self)
         -- SetRecievedItems(0)
-        disconnect()
+        ExecuteWithDelay(10, function() disconnect() end)
     end)
 
     local menu = FindFirstOf("ui_menu_C")

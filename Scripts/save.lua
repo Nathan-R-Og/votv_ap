@@ -1,10 +1,8 @@
 local AP_NOTEBOOK = nil
 function GetAPNotebook()
-    if AP_NOTEBOOK == nil or not AP_NOTEBOOK:IsValid() then
+    if AP_NOTEBOOK == nil then
         AP_NOTEBOOK = FindAPNotebook()
         if AP_NOTEBOOK then return AP_NOTEBOOK end
-
-        if not ap then return nil end
         print("Creating new AP notebook")
 
         local out = {}
@@ -17,10 +15,10 @@ function GetAPNotebook()
         )
         AP_NOTEBOOK = out["actor "]
         AP_NOTEBOOK.Key = FName("__AP_NOTEBOOK__")
-        AP_NOTEBOOK.Text[1] = FString(server .. "," .. slot .. "," .. password)
+        SaveDataToNotebook()
         AP_NOTEBOOK:upd()
-    else
-        -- print("Existing AP notebook")
+    elseif not AP_NOTEBOOK:IsValid() then
+        return nil  -- We had a notebook but we lost it: wait for it
     end
     return AP_NOTEBOOK
 end
@@ -36,142 +34,114 @@ function FindAPNotebook()
     return nil
 end
 
-function GetRecievedItems()
+local received_items = 0
+local sold_garbage_bags = 0
+local checked_location_names = {}
+local skip_claimed = {}
+local pending_fuse_blowouts = 0
+
+function LoadNotebookData()
+    local APNotebook = FindAPNotebook()
+    if APNotebook and APNotebook:IsValid() then
+        local tokens = {}
+        local text = APNotebook.Text[1]:ToString() or ""
+        for token in string.gmatch(text, "[^,]*") do
+            table.insert(tokens, token)
+        end
+        if #tokens >= 3 and #tokens[1] > 0 and #tokens[2] > 0 then
+            connectToAp(tokens[1], tokens[2], tokens[3])
+        else
+            AddHint("An AP save was detected but the connection info seems to be invalid. Please reconnect manually", HintType.Warning)
+        end
+
+        received_items = tonumber(APNotebook.Text[2]:ToString()) or 0
+        sold_garbage_bags = tonumber(APNotebook.Text[3]:ToString()) or 0
+        checked_location_names = {}
+        for name in string.gmatch(APNotebook.Text[4]:ToString() or "", "[^,]+") do
+            table.insert(checked_location_names, name)
+        end
+        skip_claimed = {}
+        for name in string.gmatch(APNotebook.Text[5]:ToString() or "", "[^,]+") do
+            table.insert(skip_claimed, name)
+        end
+        pending_fuse_blowouts = tonumber(APNotebook.Text[6]:ToString()) or 0
+    end
+end
+
+function SaveDataToNotebook()
     local APNotebook = GetAPNotebook()
     if APNotebook and APNotebook:IsValid() then
-        -- print("Getting received items")
-        local receivedItems = tonumber(APNotebook.Text[2]:ToString()) or 0
-        -- print("SAVE RECEIVED ITEMS IS " .. receivedItems)
-        return receivedItems
+        APNotebook.Text[1] = FString(server .. "," .. slot .. "," .. password)
+        APNotebook.Text[2] = FString(tostring(received_items))
+        APNotebook.Text[3] = FString(tostring(sold_garbage_bags))
+        APNotebook.Text[4] = FString(table.concat(checked_location_names, ","))
+        APNotebook.Text[5] = FString(table.concat(skip_claimed, ","))
+        APNotebook.Text[6] = FString(tostring(pending_fuse_blowouts))
+        APNotebook:upd()
+    else
+        AddHint("AP save failed. Retrying", HintType.Warning)
+        ExecuteWithDelay(SaveDataToNotebook, 1000)
     end
-    return 0
+end
+
+function GetRecievedItems()
+    return received_items
 end
 
 function SetRecievedItems(val)
-    local APNotebook = GetAPNotebook()
-    if APNotebook and APNotebook:IsValid() then
-        -- print("Setting received items")
-        APNotebook.Text[2] = FString(tostring(val))
-        APNotebook:upd()
-        print("SAVE RECEIVED ITEMS IS NOW " .. APNotebook.Text[2]:ToString())
-        return true
-    end
-    return false
+    received_items = val
+    print("SAVE RECEIVED ITEMS IS NOW " .. tostring(received_items))
+    SaveDataToNotebook()
+    return true
 end
 
 function GetSoldGarbageBags()
-    local APNotebook = GetAPNotebook()
-    if APNotebook and APNotebook:IsValid() then
-        -- print("Getting trash bags")
-        local amount = tonumber(APNotebook.Text[3]:ToString()) or 0
-        -- print("SAVE SOLD TRASH BAGS IS " .. tostring(amount))
-        return amount
-    end
-    return 0
+    return sold_garbage_bags
 end
 
 function SetSoldGarbageBags(val)
-    local APNotebook = GetAPNotebook()
-    if APNotebook and APNotebook:IsValid() then
-        -- print("Setting trash bags")
-        APNotebook.Text[3] = FString(tostring(val))
-        APNotebook:upd()
-        print("SAVE SOLD TRASH BAGS IS NOW " .. APNotebook.Text[3]:ToString())
-        return true
-    end
-    return false
+    sold_garbage_bags = val
+    print("SAVE SOLD TRASH BAGS IS NOW " .. tostring(sold_garbage_bags))
+    SaveDataToNotebook()
+    return true
 end
 
 function GetCheckedLocationNames()
-    local APNotebook = GetAPNotebook()
-    if APNotebook and APNotebook:IsValid() then
-        -- print("Getting location names")
-        local codes = {}
-        for name in string.gmatch(APNotebook.Text[4]:ToString() or "", "[^,]+") do
-            table.insert(codes, name)
-        end
-        -- print("SAVE KEYNAME INDEX IS " .. #codes)
-        return codes
-    end
-    return 0
+    return checked_location_names
 end
 
 function AddCheckedLocationName(val)
-    local APNotebook = GetAPNotebook()
-    if APNotebook and APNotebook:IsValid() then
-        -- print("Setting location names")
-        local names = APNotebook.Text[4]:ToString()
-        APNotebook.Text[4] = FString(#names > 0 and names .. "," .. val or val)
-        APNotebook:upd()
-        print("SAVE KEYNAME INDEX IS NOW " .. APNotebook.Text[4]:ToString())
-        return true
-    end
-    return false
+    table.insert(checked_location_names, val)
+    print("SAVE CHECKED LOCATIONS IS NOW " .. table.concat(checked_location_names, ","))
+    SaveDataToNotebook()
+    return true
 end
 
 function WasSkipClaimed(val)
-    local APNotebook = GetAPNotebook()
-    if APNotebook and APNotebook:IsValid() then
-        -- print("Checking auto claimed items")
-        for name in string.gmatch(APNotebook.Text[5]:ToString() or "", "[^,]+") do
-            if name == val then
-                return true
-            end
-        end
-        return false
-    end
-    return false
+    return array_contains(skip_claimed, val)
 end
 
 function AddSkipClaimedItem(val)
-    local APNotebook = GetAPNotebook()
-    if APNotebook and APNotebook:IsValid() then
-        -- print("Setting auto claimed items")
-        local names = APNotebook.Text[5]:ToString()
-        APNotebook.Text[5] = FString(#names > 0 and names .. "," .. val or val)
-        APNotebook:upd()
-        print("SAVE AUTO CLAIMED IS NOW " .. APNotebook.Text[5]:ToString())
-        return true
-    end
-    return false
+    table.insert(skip_claimed, val)
+    print("SAVE AUTO CLAIMED IS NOW " .. table.concat(skip_claimed, ","))
+    SaveDataToNotebook()
+    return true
 end
 
 function ShiftSkipClaimed()
-    local APNotebook = GetAPNotebook()
-    if APNotebook and APNotebook:IsValid() then
-        -- print("Shifting auto claimed items")
-        local codes = {}
-        for name in string.gmatch(APNotebook.Text[5]:ToString() or "", "[^,]+") do
-            table.insert(codes, name)
-        end
-        table.remove(codes, 1)
-        APNotebook.Text[5] = FString(table.concat(codes, ","))
-        APNotebook:upd()
-        print("SAVE AUTO CLAIMED IS NOW " .. APNotebook.Text[5]:ToString())
-        return true
-    end
-    return false
+    table.remove(skip_claimed, 1)
+    print("SAVE AUTO CLAIMED IS NOW " .. table.concat(skip_claimed, ","))
+    SaveDataToNotebook()
+    return true
 end
 
 function GetPendingFuseBlowouts()
-    local APNotebook = GetAPNotebook()
-    if APNotebook and APNotebook:IsValid() then
-        -- print("Getting pending blowouts")
-        local amount = tonumber(APNotebook.Text[6]:ToString()) or 0
-        -- print("SAVE PENDING BLOWOUTS IS " .. tostring(amount))
-        return amount
-    end
-    return 1
+    return pending_fuse_blowouts
 end
 
 function SetPendingFuseBlowouts(val)
-    local APNotebook = GetAPNotebook()
-    if APNotebook and APNotebook:IsValid() then
-        -- print("Setting pending blowouts")
-        APNotebook.Text[6] = FString(tostring(val))
-        APNotebook:upd()
-        print("SAVE PENDING BLOWOUTS IS NOW " .. APNotebook.Text[6]:ToString())
-        return true
-    end
-    return false
+    pending_fuse_blowouts = val
+    print("SAVE PENDING BLOWOUTS IS NOW " .. tostring(pending_fuse_blowouts))
+    SaveDataToNotebook()
+    return true
 end

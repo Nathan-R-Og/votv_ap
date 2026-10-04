@@ -132,6 +132,25 @@ auto_map = {
             end
         end
     },
+    ["Black Fog Trap"] = {
+        hint = HintType.Error,
+        run = function()
+            local Gamemode = GetGameMode()
+            if Gamemode:IsValid() then
+                Gamemode:spawnBlackFog()
+            end
+        end
+    },
+    ["Alien Cutout Trap"] = {
+        hint = HintType.Error,
+        run = function()
+            local doors = FindAllOf("door_C")
+            for i=1,3 do
+                local j = math.random(1, #doors)
+                doors[j].alienated = true
+            end
+        end
+    },
 
     ["Victory"] = { hint = HintType.Info, run = function() end }
 }

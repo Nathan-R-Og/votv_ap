@@ -567,12 +567,6 @@ function LockDoors(item_names)
     end
 end
 
-locked_breakers = {
-    calculations = false,
-    download = false,
-    coordinates = false,
-    playing = false
-}
 item_to_breaker = {
     ["Processing Breaker"] = {"calculcations", "text_calc", "breakerComp_calc", "Processing", "press_calc"},
     ["Download Breaker"] = {"download", "text_downloading", "breakerComp_down", "Download", "press_downl"},
@@ -749,7 +743,7 @@ function UnlockShopItems(props, show_hint)
             end
         end)
         if show_hint then
-            AddHint("Shop item unlocked", HintType.Thought)
+            AppendItemsHint(" (Shop item unlocked)", true)
         end
     else
         AddHint("Failed to unlock shop item", HintType.Error)
@@ -764,7 +758,7 @@ function EnableUpgradeControls(upgrade, show_hint)
         laptop[compName].button_upgDown:SetVisibility(0) -- Visible
         laptop[compName].button_upgUp:SetVisibility(0) -- Visible
         if show_hint then
-            AddHint("Upgrade controls restored", HintType.Thought)
+            AppendItemsHint(" (Upgrade controls restored)", true)
         end
     else
         AddHint("Failed to enable upgrade controls", HintType.Error)

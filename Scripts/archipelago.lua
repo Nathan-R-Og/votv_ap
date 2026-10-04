@@ -39,6 +39,12 @@ server = nil
 slot = nil 
 password = nil
 death_link_enabled = false
+locked_breakers = {
+    calculations = false,
+    download = false,
+    coordinates = false,
+    playing = false
+}
 
 itemToProps = {
     ["Progressive Sleeping Bag"] = {"sleepingbag", "sleepingbag_br", "sleepingbag_st"},
@@ -108,7 +114,7 @@ function connect(_server, _slot, _password)
             end
 
             if options.TimeSensitive == 1 and SaveGameObject.savedTime.Z < 8 then
-                AddHint("The Green Rock is enabled as a location, but it is not day 8+ yet!", HintType.Warning)
+                AddHint("The Green Fire is enabled as a location, but it is not day 8+ yet!", HintType.Warning)
             end
         end
 
@@ -132,7 +138,7 @@ function connect(_server, _slot, _password)
         LockDoors(slot_data.ItemNames)
         CheckUnobtainableWorldItemLocations()
         
-        -- Probably the first time this save has been loaded on Archipelago: kill the breakers if any of them got locked
+        -- Kill the breakers if any of them got locked and is active
         for _, data in pairs(item_to_breaker) do
             if locked_breakers[data[1]] and power_control[data[5]] then
                 -- Calling the solar function doesn't play the solar event sound
@@ -157,17 +163,17 @@ function connect(_server, _slot, _password)
             local name = GetAPItemNameFromId(item.item)
 
             local auto = auto_map[name]
+            if auto and auto.replay and (item.index < I or WasSkipClaimed(name)) then
+                print("Replaying " .. name)
+                auto.run()
+            end
             if item.index < I then
                 CheckShopAndControlsUnlock(name, false)
-
-                if auto and auto.replay then
-                    print("Replaying " .. name)
-                    auto.run()
-                end
             elseif auto and not is_initial then
                 -- The only weird case is if the very first item is auto, but this gets handled a few lines below by CheckAutoItem
                 AddSkipClaimedItem(name)
-                AddHint(name .. " from " .. ap:get_player_alias(item.player), auto.hint)
+                items_hint = items_hint .. name .. " from " .. ap:get_player_alias(item.player) .. "\n"
+                UpdateItemsHintType(auto.hint)
                 auto.run()
                 CheckShopAndControlsUnlock(name, true)
             end
@@ -237,7 +243,7 @@ function connect(_server, _slot, _password)
 
     function on_print_json(msg, extra)
         print(ap:render_json(msg, message_format))
-        if extra.type == "Hint" and extra.receiving == ap:get_player_number() then
+        if extra.type == "Hint" and (extra.receiving == ap:get_player_number() or extra.finding == ap:get_player_number()) then
             AddEmail("Archipelago Hint", ap:render_json(msg, message_format), EmailUsername.Auto)
         end
     end
@@ -338,6 +344,7 @@ function disconnect()
     have_days = 0
     sold_garbage_bags = 0
     death_link_enabled = false
+    for k, _ in pairs(locked_breakers) do locked_breakers[k] = false end
     collectgarbage("collect")
     AddHint("Successfully Disconnected.\nHave a good day!", HintType.Warning)
 end
