@@ -1,4 +1,4 @@
-item_to_upgrade = {
+ITEM_TO_UPGRADE = {
     ["Progressive Processing Level"] = "processLvl",
     ["Progressive Processing Speed"] = "processSpeed",
     ["Progressive Download Speed"] = "downloadSpd",
@@ -20,7 +20,7 @@ item_to_upgrade = {
     ["Progressive Transformer Stability"] = "transformer"
 }
 
-auto_map = {
+AUTO_MAP = {
     ["Plastic Scrap Recipe"] =              { hint = HintType.Thought, run = function() UnlockRecipe("Plastic Scrap Recipe") end, replay = true },
     ["Metal Scrap Recipe"] =                { hint = HintType.Thought, run = function() UnlockRecipe("Metal Scrap Recipe") end, replay = true },
     ["Electronic Scrap Recipe"] =           { hint = HintType.Thought, run = function() UnlockRecipe("Electronic Scrap Recipe") end, replay = true },
@@ -30,72 +30,72 @@ auto_map = {
     ["Wood Scrap Recipe"] =                 { hint = HintType.Thought, run = function() UnlockRecipe("Wood Scrap Recipe") end, replay = true },
     ["Rubble Recipe"] =                     { hint = HintType.Thought, run = function() UnlockRecipe("Rubble Recipe") end, replay = true },
 
-    ["Day"] =                               { hint = HintType.Thought, run = function() have_days = have_days + 1 end, replay = true },
+    ["Day"] =                               { hint = HintType.Thought, run = function() HaveDays = HaveDays + 1 end, replay = true },
 
     ["Lifecrystal Signal"] = {
         hint = HintType.Thought,
         run = function()
-            local SaveGameObject = GetSaveSlot()
-            if SaveGameObject ~= nil then
-                SaveGameObject.forceObjects[#SaveGameObject.forceObjects + 1] = FName("lifecrystal")
+            local save_slot = GetSaveSlot()
+            if save_slot ~= nil then
+                save_slot.forceObjects[#save_slot.forceObjects + 1] = FName("lifecrystal")
             end
         end
     },
     ["Bonus Points"] = {
         hint = HintType.Info,
         run = function()
-            local Gamemode = GetGameMode()
-            if Gamemode:IsValid() then
-                Gamemode:AddPoints(options.BonusPointsAmount)
+            local gamemode = GetGameMode()
+            if gamemode:IsValid() then
+                gamemode:AddPoints(options.BonusPointsAmount)
             end
         end
     },
     ["Positive Reputation"] = {
         hint = HintType.Info,
         run = function()
-            local SaveSlot = GetSaveSlot()
-            if SaveSlot then
-                SaveSlot.arirReputation = SaveSlot.arirReputation + options.AriralReputationAmount
+            local save_slot = GetSaveSlot()
+            if save_slot then
+                save_slot.arirReputation = save_slot.arirReputation + options.AriralReputationAmount
             end
         end
     },
 
-    ["Random Fuse Blowout"] = { hint = HintType.Warning, run = function() SetPendingFuseBlowouts(GetPendingFuseBlowouts() + 1) end },
+    ["Random Fuse Blowout"] = { hint = HintType.Warning, run = function() Save:SetPendingFuseBlowouts(Save:GetPendingFuseBlowouts() + 1) end },
 
     ["Ragdoll Trap"] = { hint = HintType.Error, run = function() MakePlayerRagdoll() end },
     ["Breaker Trap"] = {
         hint = HintType.Error,
         run = function()
-            local Gamemode = GetGameMode()
-            if Gamemode:IsValid() then
-                Gamemode.eventer.event_solar:runTrigger(Gamemode, 0)
+            local gamemode = GetGameMode()
+            if gamemode:IsValid() then
+                gamemode.eventer.event_solar:runTrigger(gamemode, 0)
             end
         end
     },
     ["Dead Flashlight Trap"] = {
         hint = HintType.Error,
         run = function()
-            local SaveGameObject = GetSaveSlot()
-            if SaveGameObject ~= nil then
-                SaveGameObject.battery = 0
+            local save_slot = GetSaveSlot()
+            if save_slot ~= nil then
+                save_slot.battery = 0
             end
         end
     },
     ["Debug TP Trap"] = {
         hint = HintType.Error,
         run = function()
-            local Gamemode = GetGameMode()
-            if Gamemode:IsValid() then
-                Gamemode:debugtp()
+            local gamemode = GetGameMode()
+            if gamemode:IsValid() then
+                gamemode:debugtp()
             end
         end
     },
     ["Flat Tire Trap"] = {
         hint = HintType.Error,
         run = function()
-            local Gamemode = GetGameMode()
-            if Gamemode:IsValid() then
-                Gamemode.car:damageWheel(0, 100, Gamemode.car.frontWheel_R)
+            local gamemode = GetGameMode()
+            if gamemode:IsValid() then
+                gamemode.car:damageWheel(0, 100, gamemode.car.frontWheel_R)
             end
         end
     },
@@ -103,13 +103,13 @@ auto_map = {
         hint = HintType.Error,
         run = function()
             local beer = SpawnSomething("/Game/objects/prop_snack_beer.prop_snack_beer_C")
-            local Pawn = GetPawn()
-            if beer:IsValid() and Pawn:IsValid() then
+            local pawn = GetPawn()
+            if beer:IsValid() and pawn:IsValid() then
                 beer:openBottle()
-                beer:eat(Pawn, true)
-                beer:eat(Pawn, true)
-                beer:eat(Pawn, true)
-                beer:eat(Pawn, true)
+                beer:eat(pawn, true)
+                beer:eat(pawn, true)
+                beer:eat(pawn, true)
+                beer:eat(pawn, true)
                 beer:K2_DestroyActor()
             end
         end
@@ -117,27 +117,27 @@ auto_map = {
     ["Points Fine Trap"] = {
         hint = HintType.Error,
         run = function()
-            local Gamemode = GetGameMode()
-            if Gamemode:IsValid() then
-                Gamemode:AddPoints(-100)
+            local gamemode = GetGameMode()
+            if gamemode:IsValid() then
+                gamemode:AddPoints(-100)
             end
         end
     },
     ["Negative Reputation Trap"] = {
         hint = HintType.Error,
         run = function()
-            local SaveSlot = GetSaveSlot()
-            if SaveSlot then
-                SaveSlot.arirReputation = SaveSlot.arirReputation - options.AriralReputationAmount
+            local save_slot = GetSaveSlot()
+            if save_slot then
+                save_slot.arirReputation = save_slot.arirReputation - options.AriralReputationAmount
             end
         end
     },
     ["Black Fog Trap"] = {
         hint = HintType.Error,
         run = function()
-            local Gamemode = GetGameMode()
-            if Gamemode:IsValid() then
-                Gamemode:spawnBlackFog()
+            local gamemode = GetGameMode()
+            if gamemode:IsValid() then
+                gamemode:spawnBlackFog()
             end
         end
     },
@@ -155,22 +155,22 @@ auto_map = {
     ["Victory"] = { hint = HintType.Info, run = function() end }
 }
 
-for k,v in pairs(item_to_upgrade) do
-    auto_map[k] = { hint = HintType.Info, run = function() Upgrade(v) end }
+for k,v in pairs(ITEM_TO_UPGRADE) do
+    AUTO_MAP[k] = { hint = HintType.Info, run = function() Upgrade(v) end }
 end
 
-for k,_ in pairs(entrance_to_door) do
-    auto_map[k] = { hint = HintType.Thought, run = function() UnlockDoor(k) end, replay = true }
+for k,_ in pairs(ENTRANCE_TO_DOOR) do
+    AUTO_MAP[k] = { hint = HintType.Thought, run = function() UnlockDoor(k) end, replay = true }
 end
 
-for k,_ in pairs(item_to_breaker) do
-    auto_map[k] = { hint = HintType.Thought, run = function() UnlockBreaker(k) end, replay = true }
+for k,_ in pairs(ITEM_TO_BREAKER) do
+    AUTO_MAP[k] = { hint = HintType.Thought, run = function() UnlockBreaker(k) end, replay = true }
 end
 
-complex_item_map = {
+COMPLEX_ITEM_MAP = {
     ["Progressive Sleeping Bag"] = function()
         local i = 0
-        for j=1,GetRecievedItems() do
+        for j=1,Save:GetRecievedItems() do
             if GetAPItemNameFromId(item_list[j].item) == "Progressive Sleeping Bag" then
                 i = i + 1
             end
@@ -188,7 +188,7 @@ complex_item_map = {
     end,
     ["Progressive Camera"] = function()
         local i = 0
-        for j=1,GetRecievedItems() do
+        for j=1,Save:GetRecievedItems() do
             if GetAPItemNameFromId(item_list[j].item) == "Progressive Camera" then
                 i = i + 1
             end
@@ -204,11 +204,11 @@ complex_item_map = {
         GiveItem("keycard", function(item) item.Open = "ALPHA_HIDEOUT" end)
     end,
     ["Kerfur-Omega Complete Manual"] = function()
-        local Pawn = GetPawn()
+        local pawn = GetPawn()
         local blueprint = SpawnSomething("/Game/objects/prop_blueprint_kerfurOmega.prop_blueprint_kerfurOmega_C")
-        if Pawn:IsValid() and blueprint:IsValid() then
+        if pawn:IsValid() and blueprint:IsValid() then
             blueprint.Key = FName("APItem")
-            Pawn:putObjectInventory2(blueprint, false, {})
+            pawn:putObjectInventory2(blueprint, false, {})
         end
     end,
     ["Scuba Gear"] = function()
@@ -229,20 +229,20 @@ complex_item_map = {
     end,
     ["Skull"] = function()
         -- The skull in the prop data is not a valid skull for the ritual
-        local Pawn = GetPawn()
+        local pawn = GetPawn()
         local blueprint = SpawnSomething("/Game/objects/prop_sskull.prop_sskull_C")
-        if Pawn:IsValid() and blueprint:IsValid() then
+        if pawn:IsValid() and blueprint:IsValid() then
             blueprint.Key = FName("APItem")
-            Pawn:putObjectInventory2(blueprint, false, {})
+            pawn:putObjectInventory2(blueprint, false, {})
         end
     end
 }
 
-item_map = {}
-inverse_item_map = {}
+ITEM_MAP = {}
+INVERSE_ITEM_MAP = {}
 function FillItemMap()
-    item_map = {}
-    inverse_item_map = {}
+    ITEM_MAP = {}
+    INVERSE_ITEM_MAP = {}
     local datatable = StaticFindObject("/Game/main/datatables/list_props.list_props")
     if datatable:IsValid() then
         print("Filling item map with " .. #datatable .. " items")
@@ -258,19 +258,19 @@ function FillItemMap()
             if k == "animalhead_0" then name = "Deer Skull" end
 
             if name ~= "" then
-                item_map[k] = name
-                if inverse_item_map[string.lower(name)] == nil then
-                    inverse_item_map[string.lower(name)] = k
+                ITEM_MAP[k] = name
+                if INVERSE_ITEM_MAP[string.lower(name)] == nil then
+                    INVERSE_ITEM_MAP[string.lower(name)] = k
                 end
                 total = total + 1
             end
         end)
         -- To make both Shrimps Pack and Shrimp Pack valid
-        inverse_item_map["shrimp pack"] = "shrimp"
+        INVERSE_ITEM_MAP["shrimp pack"] = "shrimp"
         total = total + 1
-        for k,name in pairs(locationKeys) do
-            if inverse_item_map[string.lower(name)] == nil then
-                inverse_item_map[string.lower(name)] = k
+        for k,name in pairs(LOCATION_KEYS) do
+            if INVERSE_ITEM_MAP[string.lower(name)] == nil then
+                INVERSE_ITEM_MAP[string.lower(name)] = k
                 total = total + 1
             end
         end

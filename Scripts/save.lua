@@ -1,8 +1,21 @@
-local AP_NOTEBOOK = nil
-function GetAPNotebook()
-    if AP_NOTEBOOK == nil then
-        AP_NOTEBOOK = FindAPNotebook()
-        if AP_NOTEBOOK then return AP_NOTEBOOK end
+local Save = {
+    ap_notebook = nil,
+    received_items = 0,
+    sold_garbage_bags = 0,
+    checked_location_names = {},
+    skip_claimed = {},
+    pending_fuse_blowouts = 0,
+    daily_tasks_done = 0,
+    sold_signals = {0, 0, 0, 0},
+    servers_repaired = 0,
+    transformers_repaired = 0,
+    fuses_replaced = 0
+}
+
+function Save:GetAPNotebook()
+    if self.ap_notebook == nil then
+        self.ap_notebook = self:FindAPNotebook()
+        if self.ap_notebook then return self.ap_notebook end
         print("Creating new AP notebook")
 
         local out = {}
@@ -13,17 +26,17 @@ function GetAPNotebook()
             1,
             out
         )
-        AP_NOTEBOOK = out["actor "]
-        AP_NOTEBOOK.Key = FName("__AP_NOTEBOOK__")
-        SaveDataToNotebook()
-        AP_NOTEBOOK:upd()
-    elseif not AP_NOTEBOOK:IsValid() then
+        self.ap_notebook = out["actor "]
+        self.ap_notebook.Key = FName("__AP_NOTEBOOK__")
+        self:SaveDataToNotebook()
+        self.ap_notebook:upd()
+    elseif not self.ap_notebook:IsValid() then
         return nil  -- We had a notebook but we lost it: wait for it
     end
-    return AP_NOTEBOOK
+    return self.ap_notebook
 end
 
-function FindAPNotebook()
+function Save:FindAPNotebook()
     local notebooks = FindAllOf("prop_notebook_C") or {}
     for _, notebook in ipairs(notebooks) do
         if notebook.Key:ToString() == "__AP_NOTEBOOK__" then
@@ -34,114 +47,189 @@ function FindAPNotebook()
     return nil
 end
 
-local received_items = 0
-local sold_garbage_bags = 0
-local checked_location_names = {}
-local skip_claimed = {}
-local pending_fuse_blowouts = 0
-
-function LoadNotebookData()
-    local APNotebook = FindAPNotebook()
-    if APNotebook and APNotebook:IsValid() then
+function Save:LoadNotebookData()
+    local ap_notebook = self:FindAPNotebook()
+    if ap_notebook and ap_notebook:IsValid() then
         local tokens = {}
-        local text = APNotebook.Text[1]:ToString() or ""
+        local text = ap_notebook.Text[1]:ToString() or ""
         for token in string.gmatch(text, "[^,]*") do
             table.insert(tokens, token)
         end
         if #tokens >= 3 and #tokens[1] > 0 and #tokens[2] > 0 then
-            connectToAp(tokens[1], tokens[2], tokens[3])
+            ConnectToAP(tokens[1], tokens[2], tokens[3])
         else
             AddHint("An AP save was detected but the connection info seems to be invalid. Please reconnect manually", HintType.Warning)
         end
 
-        received_items = tonumber(APNotebook.Text[2]:ToString()) or 0
-        sold_garbage_bags = tonumber(APNotebook.Text[3]:ToString()) or 0
+        received_items = tonumber(ap_notebook.Text[2]:ToString()) or 0
+        sold_garbage_bags = tonumber(ap_notebook.Text[3]:ToString()) or 0
         checked_location_names = {}
-        for name in string.gmatch(APNotebook.Text[4]:ToString() or "", "[^,]+") do
+        for name in string.gmatch(ap_notebook.Text[4]:ToString() or "", "[^,]+") do
             table.insert(checked_location_names, name)
         end
         skip_claimed = {}
-        for name in string.gmatch(APNotebook.Text[5]:ToString() or "", "[^,]+") do
+        for name in string.gmatch(ap_notebook.Text[5]:ToString() or "", "[^,]+") do
             table.insert(skip_claimed, name)
         end
-        pending_fuse_blowouts = tonumber(APNotebook.Text[6]:ToString()) or 0
+        pending_fuse_blowouts = tonumber(ap_notebook.Text[6]:ToString()) or 0
+        daily_tasks_done = tonumber(ap_notebook.Text[7]:ToString()) or 0
+        sold_signals = {}
+        for val in string.gmatch(ap_notebook.Text[8]:ToString() or "", "[^,]+") do
+            table.insert(sold_signals, tonumber(val))
+        end
+        servers_repaired = tonumber(ap_notebook.Text[9]:ToString()) or 0
+        transformers_repaired = tonumber(ap_notebook.Text[10]:ToString()) or 0
+        fuses_replaced = tonumber(ap_notebook.Text[11]:ToString()) or 0
     end
 end
 
-function SaveDataToNotebook()
-    local APNotebook = GetAPNotebook()
-    if APNotebook and APNotebook:IsValid() then
-        APNotebook.Text[1] = FString(server .. "," .. slot .. "," .. password)
-        APNotebook.Text[2] = FString(tostring(received_items))
-        APNotebook.Text[3] = FString(tostring(sold_garbage_bags))
-        APNotebook.Text[4] = FString(table.concat(checked_location_names, ","))
-        APNotebook.Text[5] = FString(table.concat(skip_claimed, ","))
-        APNotebook.Text[6] = FString(tostring(pending_fuse_blowouts))
-        APNotebook:upd()
+function Save:SaveDataToNotebook()
+    local ap_notebook = self:GetAPNotebook()
+    if ap_notebook and ap_notebook:IsValid() then
+        ap_notebook.Text[1] = FString(server .. "," .. slot .. "," .. password)
+        ap_notebook.Text[2] = FString(tostring(received_items))
+        ap_notebook.Text[3] = FString(tostring(sold_garbage_bags))
+        ap_notebook.Text[4] = FString(table.concat(checked_location_names, ","))
+        ap_notebook.Text[5] = FString(table.concat(skip_claimed, ","))
+        ap_notebook.Text[6] = FString(tostring(pending_fuse_blowouts))
+        ap_notebook.Text[7] = FString(tostring(daily_tasks_done))
+        ap_notebook.Text[8] = FString(table.concat(sold_signals, ","))
+        ap_notebook.Text[9] = FString(tostring(servers_repaired))
+        ap_notebook.Text[10] = FString(tostring(transformers_repaired))
+        ap_notebook.Text[11] = FString(tostring(fuses_replaced))
+        ap_notebook:upd()
     else
         AddHint("AP save failed. Retrying", HintType.Warning)
-        ExecuteWithDelay(SaveDataToNotebook, 1000)
+        ExecuteWithDelay(function() self:SaveDataToNotebook() end, 1000)
     end
 end
 
-function GetRecievedItems()
+function Save:GetRecievedItems()
     return received_items
 end
 
-function SetRecievedItems(val)
+function Save:SetRecievedItems(val)
     received_items = val
     print("SAVE RECEIVED ITEMS IS NOW " .. tostring(received_items))
-    SaveDataToNotebook()
+    self:SaveDataToNotebook()
     return true
 end
 
-function GetSoldGarbageBags()
+function Save:GetSoldGarbageBags()
     return sold_garbage_bags
 end
 
-function SetSoldGarbageBags(val)
+function Save:SetSoldGarbageBags(val)
     sold_garbage_bags = val
     print("SAVE SOLD TRASH BAGS IS NOW " .. tostring(sold_garbage_bags))
-    SaveDataToNotebook()
+    self:SaveDataToNotebook()
     return true
 end
 
-function GetCheckedLocationNames()
+function Save:GetCheckedLocationNames()
     return checked_location_names
 end
 
-function AddCheckedLocationName(val)
+function Save:AddCheckedLocationName(val)
     table.insert(checked_location_names, val)
     print("SAVE CHECKED LOCATIONS IS NOW " .. table.concat(checked_location_names, ","))
-    SaveDataToNotebook()
+    self:SaveDataToNotebook()
     return true
 end
 
-function WasSkipClaimed(val)
+function Save:WasSkipClaimed(val)
     return array_contains(skip_claimed, val)
 end
 
-function AddSkipClaimedItem(val)
+function Save:AddSkipClaimedItem(val)
     table.insert(skip_claimed, val)
     print("SAVE AUTO CLAIMED IS NOW " .. table.concat(skip_claimed, ","))
-    SaveDataToNotebook()
+    self:SaveDataToNotebook()
     return true
 end
 
-function ShiftSkipClaimed()
+function Save:ShiftSkipClaimed()
     table.remove(skip_claimed, 1)
     print("SAVE AUTO CLAIMED IS NOW " .. table.concat(skip_claimed, ","))
-    SaveDataToNotebook()
+    self:SaveDataToNotebook()
     return true
 end
 
-function GetPendingFuseBlowouts()
+function Save:GetPendingFuseBlowouts()
     return pending_fuse_blowouts
 end
 
-function SetPendingFuseBlowouts(val)
+function Save:SetPendingFuseBlowouts(val)
     pending_fuse_blowouts = val
     print("SAVE PENDING BLOWOUTS IS NOW " .. tostring(pending_fuse_blowouts))
-    SaveDataToNotebook()
+    self:SaveDataToNotebook()
     return true
 end
+
+function Save:GetDailyTasksDone()
+    return daily_tasks_done
+end
+
+function Save:SetDailyTasksDone(val)
+    daily_tasks_done = val
+    print("SAVE DAILY TASKS DONE IS NOW " .. tostring(daily_tasks_done))
+    self:SaveDataToNotebook()
+    return true
+end
+
+function Save:GetSoldSignals(level)
+    return sold_signals[level + 1]
+end
+
+function Save:SetSoldSignals(level, val)
+    sold_signals[level + 1] = val
+    print("SAVE SOLD SIGNALS DONE IS NOW " .. table.concat(sold_signals, ","))
+    self:SaveDataToNotebook()
+    return true
+end
+
+function Save:GetAllSoldSignals()
+    return sold_signals
+end
+
+function Save:SetAllSoldSignals(val)
+    sold_signals = val
+    print("SAVE SOLD SIGNALS DONE IS NOW " .. table.concat(sold_signals, ","))
+    self:SaveDataToNotebook()
+    return true
+end
+
+function Save:GetServersRepaired()
+    return servers_repaired
+end
+
+function Save:SetServersRepaired(val)
+    servers_repaired = val
+    print("SAVE SERVERS REPAIRED DONE IS NOW " .. tostring(servers_repaired))
+    self:SaveDataToNotebook()
+    return true
+end
+
+function Save:GetTransformersRepaired()
+    return transformers_repaired
+end
+
+function Save:SetTransformersRepaired(val)
+    transformers_repaired = val
+    print("SAVE TRANSFORMERS REPAIRED DONE IS NOW " .. tostring(transformers_repaired))
+    self:SaveDataToNotebook()
+    return true
+end
+
+function Save:GetFusesReplaced()
+    return fuses_replaced
+end
+
+function Save:SetFusesReplaced(val)
+    fuses_replaced = val
+    print("SAVE FUSES REPLACED DONE IS NOW " .. tostring(fuses_replaced))
+    self:SaveDataToNotebook()
+    return true
+end
+
+return Save

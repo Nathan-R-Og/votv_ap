@@ -30,17 +30,17 @@ function any(arr, predicate)
 end
 
 function table_invert(t)
-    local s={}
+    local s = {}
     for k,v in pairs(t) do
-      s[v]=k
+      s[v] = k
     end
     return s
 end
 
 function lowercase_keys(t)
-    local s={}
+    local s = {}
     for k,v in pairs(t) do
-      s[string.lower(k)]=v
+      s[string.lower(k)] = v
     end
     return s
 end
@@ -53,17 +53,17 @@ function extract_keys(original_table)
     return keys_only_table
 end
 
-local existing_hooks = {}
+local ExistingHooks = {}
 function RegisterUniqueHook(hook, func)
-    if not array_contains(existing_hooks, hook) then
-        table.insert(existing_hooks, hook)
+    if not array_contains(ExistingHooks, hook) then
+        table.insert(ExistingHooks, hook)
         RegisterHook(hook, func)
     end
 end
 
 function NotifyUniqueOnNewObject(cls, func)
-    if not array_contains(existing_hooks, cls) then
-        table.insert(existing_hooks, cls)
+    if not array_contains(ExistingHooks, cls) then
+        table.insert(ExistingHooks, cls)
         NotifyOnNewObject(cls, func)
     end
 end

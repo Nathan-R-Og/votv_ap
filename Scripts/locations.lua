@@ -1,7 +1,7 @@
 -- Unique items are registered using their name, as this is way more future proof
 -- Some items also are generated mid run, and so don't have a consistent key
 -- Otherwise, the item uses its key if the map has multiple instances, or if more instances can be easily gotten
-locationKeys = {
+LOCATION_KEYS = {
     ["grock"]                  = "Green Fire Rock",
 
     ["argemia"]                = "Red Argemia Plush",
@@ -204,15 +204,15 @@ locationKeys = {
     ["llama"]                  = "Llama Plush",
     ["thiccfus"]               = "Thiccfus Plush"
 }
-inverse_locations = table_invert(locationKeys)
+INVERSE_LOCATION_KEYS = table_invert(LOCATION_KEYS)
 
-preserve_items = {
+PRESERVED_ITEMS = {
     ["dingus"] = true,
     ["argemwell"] = true,
     ["gnarpwell"] = true,
     ["eriewell"] = true
 }
-lock_until_ap_item = {
+LOCKED_UNTIL_AP_ITEM = {
     -- Generated
     ["rune_0"] = true,
     ["rune_1"] = true,
@@ -245,7 +245,7 @@ lock_until_ap_item = {
     ["physmodule_spectrogram"] = true
 }
 
-createdGoals = {
+CREATED_GOALS = {
     ["/Game/objects/prop_kerfurOmega_0.prop_kerfurOmega_0_C"] = 0,  -- Kerfur-Omega
     ["/Game/objects/prop_h.prop_h_C"] = 1,  -- Hell Rock
     ["/Game/objects/prop_argw.prop_argw_C"] = 2,  -- White Argemia Plush

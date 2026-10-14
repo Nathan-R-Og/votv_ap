@@ -1,24 +1,23 @@
 print("[MyLuaMod] Mod loaded\n")
 
 UEHelpers = require("UEHelpers")
-
 require("utils")
 require("game_utils")
-require("save")
+Save = require("save")
 require("archipelago")
 
 --last achieved day
-local latest_day = 0
+local LatestDay = 0
 
 --currently active task
-local task_active = false
+local TaskActive = false
 
 --active fuse count
-local fuses = {}
-local fuse_debt = {}
+local Fuses = {}
+local FuseDebt = {}
 
---ap day items
-have_days = 0
+--AP day items
+HaveDays = 0
 
 items_hint = ""
 items_hint_type = HintType.Info
@@ -34,20 +33,20 @@ function CheckAutoItem(i)
     if i < #item_list then
         local next_item = item_list[i+1]
         local item_name = GetAPItemNameFromId(next_item.item)
-        if WasSkipClaimed(item_name) then
-            ShiftSkipClaimed()
+        if Save:WasSkipClaimed(item_name) then
+            Save:ShiftSkipClaimed()
             return CheckAutoItem(i+1)
         end
-        local auto_item = auto_map[item_name]
+        local auto_item = AUTO_MAP[item_name]
         if auto_item ~= nil then
-            items_hint = items_hint .. item_name .. " from " .. ap:get_player_alias(next_item.player) .. "\n"
+            items_hint = items_hint .. item_name .. " from " .. AP:get_player_alias(next_item.player) .. "\n"
             UpdateItemsHintType(auto_item.hint)
             auto_item.run()
             CheckShopAndControlsUnlock(item_name, true)
             return CheckAutoItem(i+1)
         end
     end
-    SetRecievedItems(i)
+    Save:SetRecievedItems(i)
     SendItemsHint()
 end
 
@@ -72,17 +71,17 @@ end
 
 function SendItemsHint()
     local item_count = 0
-    for i=GetRecievedItems()+1,#item_list do
+    for i=Save:GetRecievedItems()+1,#item_list do
         local item = item_list[i]
         local item_name = GetAPItemNameFromId(item.item)
-        if not WasSkipClaimed(item_name) then
+        if not Save:WasSkipClaimed(item_name) then
             item_count = item_count + 1
         end
     end
     if item_count > 0 then
-        local item = item_list[GetRecievedItems()+1]
+        local item = item_list[Save:GetRecievedItems()+1]
         local item_name = GetAPItemNameFromId(item.item)
-        local player = ap:get_player_alias(item.player)
+        local player = AP:get_player_alias(item.player)
         if #items_hint > 0 then
             items_hint = items_hint .. "\n\n"
         else
@@ -100,18 +99,18 @@ function SendItemsHint()
 end
 
 function GetNextItem()
-    local i = GetRecievedItems()
+    local i = Save:GetRecievedItems()
     if i < #item_list then
         local item = item_list[i+1]
         if item.index >= i then
             local item_name = GetAPItemNameFromId(item.item)
-            local player = ap:get_player_alias(item.player)
+            local player = AP:get_player_alias(item.player)
             AppendItemsHint(item_name .. " from " .. player, false)
-            local complex_item = complex_item_map[item_name]
+            local complex_item = COMPLEX_ITEM_MAP[item_name]
             if complex_item then
                 complex_item()
             else
-                local internal_name = inverse_item_map[string.lower(item_name)]
+                local internal_name = INVERSE_ITEM_MAP[string.lower(item_name)]
                 if internal_name ~= nil then
                     GiveItem(internal_name)
                 elseif last_item_failed then
@@ -147,10 +146,10 @@ function OnTouchProp(prop)
     -- Prevent items given by AP from triggering checks
     if string.startswith(key, "APItem") then return false end
     local name = prop.Name:ToString()
-    local location = locationKeys[key] or locationKeys[name]
+    local location = LOCATION_KEYS[key] or LOCATION_KEYS[name]
     if not location then return false end
     local collected = false
-    local checkedNames = GetCheckedLocationNames()
+    local checkedNames = Save:GetCheckedLocationNames()
     if array_contains(checked_location_names, location) then
         print("Previously checked!")
         collected = true
@@ -171,13 +170,13 @@ function OnTouchProp(prop)
 
     local destroyItem = false
     if collected then
-        AddCheckedLocationName(location)
-        if preserve_items[name] then
+        Save:AddCheckedLocationName(location)
+        if PRESERVED_ITEMS[name] then
             prop.Key = FName("APItem")
         elseif DELETE_LOCATION_ITEMS then
             destroyItem = true
         end
-    elseif lock_until_ap_item[name] and any(item_list, function(val) return GetAPItemNameFromId(val.item) == item_map[name] end) then
+    elseif LOCKED_UNTIL_AP_ITEM[name] and (slot_data.ItemNames[name] or 0) > 0 then
         destroyItem = true
         AddHint("You're not allowed to get this item until you receive it!", HintType.Error)
     end
@@ -190,22 +189,25 @@ function OnTouchProp(prop)
 end
 
 function CheckDailyTask()
-    local SaveGameObject = GetSaveSlot()
-    if SaveGameObject ~= nil then
-        local new_active = SaveGameObject.taskNew.active_15_4D2EB6A44AAAE79770E875BDC11E595B
-        if task_active and not new_active then
-            SendNextLocation("Daily Task Done")
+    local save_slot = GetSaveSlot()
+    if save_slot ~= nil then
+        local new_active = save_slot.taskNew.active_15_4D2EB6A44AAAE79770E875BDC11E595B
+        if TaskActive and not new_active then
+            local daily_tasks_done = Save:GetDailyTasksDone()
+            daily_tasks_done = daily_tasks_done + 1
+            SendLocation("Daily Task Done " .. daily_tasks_done)
+            Save:SetDailyTasksDone(daily_tasks_done)
         end
         print("DAILY TASK ACTIVE IS NOW " .. tostring(new_active))
-        task_active = new_active
+        TaskActive = new_active
     end
 end
 
 function CheckFuseHealth(index, obj)
     if not obj:IsValid() then return 0 end
-    local base = fuses[index] or {}
-    fuses[index] = {}
-    obj.fuses:ForEach(function(i, e) fuses[index][i] = e:get() end)
+    local base = Fuses[index] or {}
+    Fuses[index] = {}
+    obj.fuses:ForEach(function(i, e) Fuses[index][i] = e:get() end)
 
     old_health = 0
     old_broken = 0
@@ -214,7 +216,7 @@ function CheckFuseHealth(index, obj)
     for _, fuse in pairs(base) do
         if fuse == 1 then old_health = old_health + 1 elseif fuse == 2 then old_broken = old_broken + 1 end
     end
-    for _, fuse in pairs(fuses[index]) do
+    for _, fuse in pairs(Fuses[index]) do
         if fuse == 1 then new_health = new_health + 1 elseif fuse == 2 then new_broken = new_broken + 1 end
     end
 
@@ -222,10 +224,10 @@ function CheckFuseHealth(index, obj)
     local increase = new_health - old_health
     local corrected_increase = increase + (broken_increase > 0 and broken_increase or 0)
     print(obj:GetFName():ToString() .. " health: " .. new_health .. " (" .. increase .. "," .. corrected_increase .. ")")
-    fuse_debt[index] = fuse_debt[index] and fuse_debt[index] + corrected_increase or corrected_increase
-    if fuse_debt[index] > 0 then
-        corrected_increase = fuse_debt[index]
-        fuse_debt[index] = 0
+    FuseDebt[index] = FuseDebt[index] and FuseDebt[index] + corrected_increase or corrected_increase
+    if FuseDebt[index] > 0 then
+        corrected_increase = FuseDebt[index]
+        FuseDebt[index] = 0
         return corrected_increase
     else
         return math.min(increase, 0)
@@ -234,17 +236,17 @@ end
 
 function CheckDeathLink()
     -- AddHint("You died!", HintType.Thought)
-    if ap and death_link_enabled then
+    if AP and death_link_enabled then
         death_link_enabled = false
-        ap:Bounce({ cause = "", source = slot, time = os.time(os.date("!*t")) }, nil, nil, {"DeathLink"})
+        AP:Bounce({ cause = "", source = slot, time = os.time(os.date("!*t")) }, nil, nil, {"DeathLink"})
     end
 end
 
 function RegisterAllHooks()
-    local Gamemode = GetGameMode()
-    if Gamemode then
+    local gamemode = GetGameMode()
+    if gamemode then
         -- Only run this on the actual map
-        if Gamemode.isMainMenu then
+        if gamemode.isMainMenu then
             print("On main menu")
             return
         end
@@ -279,7 +281,7 @@ function RegisterAllHooks()
         local key = self:get().Key:ToString()
         if string.startswith(key, "APItem") then return end
         local name = self:get().Name:ToString()
-        local location = locationKeys[key] or locationKeys[name]
+        local location = LOCATION_KEYS[key] or LOCATION_KEYS[name]
         if location ~= nil then
             print("Found clientside location: " .. location)
             local id = GetAPLocationIDfromName(location)
@@ -298,30 +300,32 @@ function RegisterAllHooks()
         end
     end)
 
-    local droneAtBase = false
+    local drone_at_base = false
     RegisterUniqueHook("/Game/objects/drone.drone_C:soundAlarm", function(self)
         print("Drone is now at base")
-        droneAtBase = true
+        drone_at_base = true
     end)
     RegisterUniqueHook("/Game/objects/drone.drone_C:triggerFly", function(self, console)
         print("Drone has begun flight")
-        if not droneAtBase then return end
-        droneAtBase = false
+        if not drone_at_base then return end
+        drone_at_base = false
         print("Drone was at base")
         CheckDailyTask()
 
-        local SaveSlot = GetSaveSlot()
-        if SaveSlot ~= nil then
+        local save_slot = GetSaveSlot()
+        if save_slot ~= nil then
             local container_index = self:get().container.propInventory.Index
-            local container_data = SaveSlot.GObjStack[container_index + 1].obj_11_89CC26B14C79E8F107FE6E9010A5AFC9
-            local sold_garbage_bags = GetSoldGarbageBags()
+            local container_data = save_slot.GObjStack[container_index + 1].obj_11_89CC26B14C79E8F107FE6E9010A5AFC9
+            local sold_garbage_bags = Save:GetSoldGarbageBags()
+            local initial_sold_garbage_bags = sold_garbage_bags
+            local sold_signals = Save:GetAllSoldSignals()
             container_data:ForEach(function(_, item)
                 local classname = item:get().class_3_5267A5ED44C89294283B8CBBEC685F8A:GetFName():ToString()
                 print(classname)
                 if classname == "prop_box_C" then
                     item:get().signals_45_CE5AB8DE4026B6660BF9A28FA6690AD5:ForEach(function(_, signal)
                         local sold = false
-                        SaveSlot.soldSignals:ForEach(function(_, sold)
+                        save_slot.soldSignals:ForEach(function(_, sold)
                             if sold:get():ToString() == signal:get().id_26_DD9E8AA643A0BF449C8D1E8993752C16:ToString() then
                                 sold = true
                                 return true
@@ -331,10 +335,12 @@ function RegisterAllHooks()
                             local level = signal:get().level_8_986E7CB3437BFD9FC9F6DF824C794EA8
                             if options.BackwardsSignalLevels == 1 then
                                 for i=0,level do
-                                    SendNextLocation("Sell Level " .. i .. " Signal")
+                                    sold_signals[i + 1] = sold_signals[i + 1] + 1
+                                    SendLocation("Sell Level " .. i .. " Signal " .. sold_signals[i + 1])
                                 end
                             else
-                                SendNextLocation("Sell Level " .. level .. " Signal")
+                                sold_signals[level + 1] = sold_signals[level + 1] + 1
+                                SendLocation("Sell Level " .. level .. " Signal " .. sold_signals[level + 1])
                             end
                         end
                     end)
@@ -345,11 +351,11 @@ function RegisterAllHooks()
                 end
             end)
 
-            while sold_garbage_bags >= 24 do
-                SendNextLocation("Sell 24 Full Trash Bags")
-                sold_garbage_bags = sold_garbage_bags - 24
+            for i = math.floor(initial_sold_garbage_bags / 24),math.floor(sold_garbage_bags / 24) - 1 do
+                SendLocation("Sell 24 Full Trash Bags " .. (i + 1))
             end
-            SetSoldGarbageBags(sold_garbage_bags)
+            Save:SetSoldGarbageBags(sold_garbage_bags)
+            Save:SetAllSoldSignals(sold_signals)
         end
     end)
     RegisterUniqueHook("/Game/objects/droneSellLocation.droneSellLocation_C:sell", function(self, Points, responseEmail, checked, soldAmountSig, sellList)
@@ -357,37 +363,47 @@ function RegisterAllHooks()
     end)
 
     RegisterUniqueHook("/Game/objects/serverBox.serverBox_C:fix", function(self)
-        SendNextLocation("Repair Server")
+        local servers = Save:GetServersRepaired() + 1
+        SendLocation("Repair Server " .. servers)
+        Save:SetServersRepaired(servers)
     end)
     RegisterUniqueHook("/Game/objects/misc/coordRadarDish.coordRadarDish_C:updFuses", function(self)
         local increase = CheckFuseHealth(self:get().ID, self:get())
-        local pending = GetPendingFuseBlowouts()
+        local pending = Save:GetPendingFuseBlowouts()
         if increase < 0 and pending > 0 then
-            SetPendingFuseBlowouts(math.max(0, pending + increase))
+            Save:SetPendingFuseBlowouts(math.max(0, pending + increase))
         end
+        local fuses = Save:GetFusesReplaced()
         for i=1,increase do
-            SendNextLocation("Replace Fuse")
+            fuses = fuses + 1
+            SendLocation("Replace Fuse " .. fuses)
         end
+        Save:SetFusesReplaced(fuses)
     end)
     RegisterUniqueHook("/Game/objects/radiotower.radiotower_C:updFuses", function(self)
         local increase = CheckFuseHealth(3, self:get())
-        local pending = GetPendingFuseBlowouts()
+        local pending = Save:GetPendingFuseBlowouts()
         if increase < 0 and pending > 0 then
-            SetPendingFuseBlowouts(math.max(0, pending + increase))
+            Save:SetPendingFuseBlowouts(math.max(0, pending + increase))
         end
+        local fuses = Save:GetFusesReplaced()
         for i=1,increase do
-            SendNextLocation("Replace Fuse")
+            fuses = fuses + 1
+            SendLocation("Replace Fuse " .. fuses)
         end
+        Save:SetFusesReplaced(fuses)
     end)
 
-    local generatorCycles = {}
+    local generator_cycles = {}
     RegisterUniqueHook("/Game/objects/generator.generator_C:player_use", function(self)
         local index = self:get().Index
         local cycle = self:get().cycle
-        if generatorCycles[index] ~= nil and generatorCycles[index] < 100 and cycle == 100 then
-            SendNextLocation("Repair Transformer")
+        if generator_cycles[index] ~= nil and generator_cycles[index] < 100 and cycle == 100 then
+            local transformers = Save:GetTransformersRepaired() + 1
+            SendLocation("Repair Transformer " .. transformers)
+            Save:SetTransformersRepaired(transformers)
         end
-        generatorCycles[index] = cycle
+        generator_cycles[index] = cycle
     end)
 
     RegisterUniqueHook("/Game/objects/misc/kitchen.kitchen_C:fix", function(self, clean, Player, sponge, Hit)
@@ -446,41 +462,41 @@ function RegisterAllHooks()
 
     -- Day Looping
     RegisterUniqueHook("/Game/objects/misc/daynightCycle.daynightCycle_C:ReceiveTick", function(self, DeltaSeconds)
-        if ap == nil then return end
-        local SaveGameObject = GetSaveSlot()
+        if AP == nil then return end
+        local save_slot = GetSaveSlot()
         local danc = GetDNC()
-        if danc:IsValid() and SaveGameObject ~= nil then
+        if danc:IsValid() and save_slot ~= nil then
             --safe zone of time before next day
             if danc.Day >= danc.MaxTime - 5 and options.DayAsItems == 1 then
                 --check if has next day
-                if SaveGameObject.savedTime.Z + 1 > have_days then
+                if save_slot.savedTime.Z + 1 > HaveDays then
                     AddHint('You do not have the next day! Looping...', HintType.Warning)
                     danc.Day = 0
                 end
             end
 
             --do survived checks
-            while SaveGameObject.savedTime.Z > latest_day do
-                latest_day = latest_day + 1
-                SendLocation("Survive Day " .. tostring(latest_day))
-                if options and options.Objective == 6 and options.SurviveDay <= latest_day and not completed then
+            while save_slot.savedTime.Z > LatestDay do
+                LatestDay = LatestDay + 1
+                SendLocation("Survive Day " .. tostring(LatestDay))
+                if options and options.Objective == 6 and options.SurviveDay <= LatestDay and not completed then
                     ReachGoal()
                 end
             end
         end
     end)
 
-    for cls, goal in pairs(createdGoals) do
+    for cls, goal in pairs(CREATED_GOALS) do
         print("Setting up goal check for " .. cls)
         NotifyUniqueOnNewObject(cls, function(self)
-            if ap == nil or completed then return end
+            if AP == nil or completed then return end
             if goal == options.Objective then
                 ReachGoal()
             end
         end)
     end
     RegisterUniqueHook("/Game/objects/warpbox.warpbox_C:player_use", function(self)
-        if ap == nil or completed then return end
+        if AP == nil or completed then return end
         if options.Objective ~= 5 then return end
         for index=1,9 do
             local has_tile = self:get().tiles[index]
@@ -492,12 +508,12 @@ function RegisterAllHooks()
     end)
 
     RegisterUniqueHook("/Game/main/mainGamemode.mainGamemode_C:setPower", function(self, active_calc, active_downl, active_coords, active_play, active_light)
-        local Gamemode = GetGameMode()
-        if Gamemode:IsValid() then
-            if active_calc:get() and locked_breakers.calculations then Gamemode.eventer.event_solar:runTrigger(Gamemode, 0) end
-            if active_downl:get() and locked_breakers.download then Gamemode.eventer.event_solar:runTrigger(Gamemode, 0) end
-            if active_coords:get() and locked_breakers.coordinates then Gamemode.eventer.event_solar:runTrigger(Gamemode, 0) end
-            if active_play:get() and locked_breakers.playing then Gamemode.eventer.event_solar:runTrigger(Gamemode, 0) end
+        local gamemode = GetGameMode()
+        if gamemode:IsValid() then
+            if active_calc:get() and LockedBreakers.calculations then gamemode.eventer.event_solar:runTrigger(gamemode, 0) end
+            if active_downl:get() and LockedBreakers.download then gamemode.eventer.event_solar:runTrigger(gamemode, 0) end
+            if active_coords:get() and LockedBreakers.coordinates then gamemode.eventer.event_solar:runTrigger(gamemode, 0) end
+            if active_play:get() and LockedBreakers.playing then gamemode.eventer.event_solar:runTrigger(gamemode, 0) end
         end
     end)
 
@@ -523,24 +539,24 @@ function RegisterAllHooks()
     CheckDailyTask()
     local radiotower = FindFirstOf("radiotower_C")
     CheckFuseHealth(3, radiotower)
-    local coordRadars = FindAllOf("coordRadarDish_C")
-    for _, radar in ipairs(coordRadars or {}) do
+    local coord_radars = FindAllOf("coordRadarDish_C")
+    for _, radar in ipairs(coord_radars or {}) do
         CheckFuseHealth(radar.ID, radar)
     end
     FillItemMap()
 
     local drone = FindFirstOf("drone_C")
     if drone:IsValid() then
-        droneAtBase = drone.flyingType == 1
+        drone_at_base = drone.flyingType == 1
     end
 
-    LoadNotebookData()
+    Save:LoadNotebookData()
     LoopAsync(30000, function()
-        if ap then return true end
-        local Gamemode = GetGameMode()
-        if Gamemode then
+        if AP then return true end
+        local gamemode = GetGameMode()
+        if gamemode then
             -- Only run this on the actual map
-            if Gamemode.isMainMenu then
+            if gamemode.isMainMenu then
                 print("On main menu")
                 return true
             end
@@ -560,7 +576,7 @@ end)
 RegisterKeyBind(Key.F7, function()
     ExecuteInGameThread(function()
         AddHint("Debug shortcut", HintType.Warning)
-        local notebook = FindAPNotebook()
+        local notebook = Save:FindAPNotebook()
         if notebook then
             AddHint("Found AP notebook", HintType.Warning)
             print(notebook)
@@ -578,16 +594,16 @@ RegisterKeyBind(Key.F7, function()
         --TryToBlowoutRandomFuse()
         --LockRecipes({"Metal Scrap Recipe"})
         --UnlockRecipe("Metal Scrap Recipe")
-        --complex_item_map["Bunker Keycard"]()
+        --COMPLEX_ITEM_MAP["Bunker Keycard"]()
         -- local pos = GetPawn():K2_GetActorLocation()
         -- print(pos.X .. "/" .. pos.Y .. "/" .. pos.Z)
 
-        -- local storeDatatable = StaticFindObject("/Game/main/datatables/list_store.list_store")
-        -- local propDatatable = StaticFindObject("/Game/main/datatables/list_props.list_props")
-        -- if storeDatatable:IsValid() and propDatatable:IsValid() then
+        -- local store_datatable = StaticFindObject("/Game/main/datatables/list_store.list_store")
+        -- local prop_datatable = StaticFindObject("/Game/main/datatables/list_props.list_props")
+        -- if store_datatable:IsValid() and prop_datatable:IsValid() then
         --     result = "\n"
-        --     storeDatatable:ForEachRow(function(name, data)
-        --         result = result .. "    \"" .. propDatatable:FindRow(name).displayName_8_FE83ADBF40AA162942FCE589F5806DD2:ToString() .. "\": ShopItem(" .. data.price_11_BE3AF83E446D1C3BDEA63BA50CFE096C .. ", " .. data.size_30_C3131BE84D89E0C389F1DB9557E08D74 .. ", \"" .. name .. "\", IC.filler"
+        --     store_datatable:ForEachRow(function(name, data)
+        --         result = result .. "    \"" .. prop_datatable:FindRow(name).displayName_8_FE83ADBF40AA162942FCE589F5806DD2:ToString() .. "\": ShopItem(" .. data.price_11_BE3AF83E446D1C3BDEA63BA50CFE096C .. ", " .. data.size_30_C3131BE84D89E0C389F1DB9557E08D74 .. ", \"" .. name .. "\", IC.filler"
         --         if data.achievementUnlock_38_883E827740DCBD0E996CF9B74B755175:ToString() ~= "None" then result = result .. ", \"" .. data.achievementUnlock_38_883E827740DCBD0E996CF9B74B755175:ToString() .. "\"" end
         --         result = result .. "),\n"
         --     end)
@@ -598,7 +614,7 @@ end)
 
 RegisterUniqueHook("/Script/Engine.PlayerController:ClientRestart", function(self, NewPawn)
     NotifyUniqueOnNewObject("/Game/main/mainPlayer.mainPlayer_C", function(self)
-        -- SetRecievedItems(0)
+        -- Save:SetRecievedItems(0)
         ExecuteWithDelay(10, function() disconnect() end)
     end)
 
@@ -644,7 +660,7 @@ RegisterConsoleCommandHandler("connect", function(FullCommand, Parameters)
     if #Parameters == 3 then
         password = Parameters[3]
     end
-    connectToAp(Parameters[1], Parameters[2], password)
+    ConnectToAP(Parameters[1], Parameters[2], password)
     return true
 end)
 
@@ -666,16 +682,16 @@ RegisterConsoleCommandHandler("panic", function(FullCommand, Parameters)
         if item.flags & 1 > 0 then
             local item_name = GetAPItemNameFromId(item.item)
             if item_name == Parameters[1] then
-                if auto_map[item_name] then
+                if AUTO_MAP[item_name] then
                     AddHint("You cannot replay auto redeemed items", HintType.Error)
                     return true
                 end
-                local complex_item = complex_item_map[item_name]
+                local complex_item = COMPLEX_ITEM_MAP[item_name]
                 if complex_item then
                     complex_item()
                     return true
                 end
-                local internal_name = inverse_item_map[string.lower(item_name)]
+                local internal_name = INVERSE_ITEM_MAP[string.lower(item_name)]
                 if internal_name ~= nil then
                     AddHint("Giving " .. item_name, HintType.Info)
                     GiveItem(internal_name)
