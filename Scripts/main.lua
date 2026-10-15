@@ -30,9 +30,9 @@ DELETE_LOCATION_ITEMS = true
 
 -- TODO: Find better name
 function CheckAutoItem(i)
-    if i < #item_list then
-        local next_item = item_list[i+1]
-        local item_name = GetAPItemNameFromId(next_item.item)
+    if i < #ItemList then
+        local next_item = ItemList[i+1]
+        local item_name = GetAPItemNameFromID(next_item.item)
         if Save:WasSkipClaimed(item_name) then
             Save:ShiftSkipClaimed()
             return CheckAutoItem(i+1)
@@ -71,16 +71,16 @@ end
 
 function SendItemsHint()
     local item_count = 0
-    for i=Save:GetRecievedItems()+1,#item_list do
-        local item = item_list[i]
-        local item_name = GetAPItemNameFromId(item.item)
+    for i=Save:GetRecievedItems()+1,#ItemList do
+        local item = ItemList[i]
+        local item_name = GetAPItemNameFromID(item.item)
         if not Save:WasSkipClaimed(item_name) then
             item_count = item_count + 1
         end
     end
     if item_count > 0 then
-        local item = item_list[Save:GetRecievedItems()+1]
-        local item_name = GetAPItemNameFromId(item.item)
+        local item = ItemList[Save:GetRecievedItems()+1]
+        local item_name = GetAPItemNameFromID(item.item)
         local player = AP:get_player_alias(item.player)
         if #items_hint > 0 then
             items_hint = items_hint .. "\n\n"
@@ -100,10 +100,10 @@ end
 
 function GetNextItem()
     local i = Save:GetRecievedItems()
-    if i < #item_list then
-        local item = item_list[i+1]
+    if i < #ItemList then
+        local item = ItemList[i+1]
         if item.index >= i then
-            local item_name = GetAPItemNameFromId(item.item)
+            local item_name = GetAPItemNameFromID(item.item)
             local player = AP:get_player_alias(item.player)
             AppendItemsHint(item_name .. " from " .. player, false)
             local complex_item = COMPLEX_ITEM_MAP[item_name]
@@ -150,7 +150,7 @@ function OnTouchProp(prop)
     if not location then return false end
     local collected = false
     local checkedNames = Save:GetCheckedLocationNames()
-    if array_contains(checked_location_names, location) then
+    if array_contains(CheckedLocationNames, location) then
         print("Previously checked!")
         collected = true
         for _, name in ipairs(checkedNames) do
@@ -176,7 +176,7 @@ function OnTouchProp(prop)
         elseif DELETE_LOCATION_ITEMS then
             destroyItem = true
         end
-    elseif LOCKED_UNTIL_AP_ITEM[name] and (slot_data.ItemNames[name] or 0) > 0 then
+    elseif LOCKED_UNTIL_AP_ITEM[name] and (SlotData.ItemNames[name] or 0) > 0 then
         destroyItem = true
         AddHint("You're not allowed to get this item until you receive it!", HintType.Error)
     end
@@ -236,9 +236,9 @@ end
 
 function CheckDeathLink()
     -- AddHint("You died!", HintType.Thought)
-    if AP and death_link_enabled then
-        death_link_enabled = false
-        AP:Bounce({ cause = "", source = slot, time = os.time(os.date("!*t")) }, nil, nil, {"DeathLink"})
+    if AP and DeathLinkEnabled then
+        DeathLinkEnabled = false
+        AP:Bounce({ cause = "", source = Slot, time = os.time(os.date("!*t")) }, nil, nil, {"DeathLink"})
     end
 end
 
@@ -284,7 +284,7 @@ function RegisterAllHooks()
         local location = LOCATION_KEYS[key] or LOCATION_KEYS[name]
         if location ~= nil then
             print("Found clientside location: " .. location)
-            local id = GetAPLocationIDfromName(location)
+            local id = GetAPLocationIDFromName(location)
             print("Serverside id: " .. tostring(id))
             if id ~= nil and id >= 0 then
                 local missing = array_contains(MissingLocations, id)
@@ -333,7 +333,7 @@ function RegisterAllHooks()
                         end)
                         if not sold and #signal:get().name_15_4DC53B564EDE34E0A8A16A92BD26B4AD:ToString() > 0 then
                             local level = signal:get().level_8_986E7CB3437BFD9FC9F6DF824C794EA8
-                            if options.BackwardsSignalLevels == 1 then
+                            if Options.BackwardsSignalLevels == 1 then
                                 for i=0,level do
                                     sold_signals[i + 1] = sold_signals[i + 1] + 1
                                     SendLocation("Sell Level " .. i .. " Signal " .. sold_signals[i + 1])
@@ -467,7 +467,7 @@ function RegisterAllHooks()
         local danc = GetDNC()
         if danc:IsValid() and save_slot ~= nil then
             --safe zone of time before next day
-            if danc.Day >= danc.MaxTime - 5 and options.DayAsItems == 1 then
+            if danc.Day >= danc.MaxTime - 5 and Options.DayAsItems == 1 then
                 --check if has next day
                 if save_slot.savedTime.Z + 1 > HaveDays then
                     AddHint('You do not have the next day! Looping...', HintType.Warning)
@@ -479,7 +479,7 @@ function RegisterAllHooks()
             while save_slot.savedTime.Z > LatestDay do
                 LatestDay = LatestDay + 1
                 SendLocation("Survive Day " .. tostring(LatestDay))
-                if options and options.Objective == 6 and options.SurviveDay <= LatestDay and not completed then
+                if Options and Options.Objective == 6 and Options.SurviveDay <= LatestDay and not Completed then
                     ReachGoal()
                 end
             end
@@ -489,15 +489,15 @@ function RegisterAllHooks()
     for cls, goal in pairs(CREATED_GOALS) do
         print("Setting up goal check for " .. cls)
         NotifyUniqueOnNewObject(cls, function(self)
-            if AP == nil or completed then return end
-            if goal == options.Objective then
+            if AP == nil or Completed then return end
+            if goal == Options.Objective then
                 ReachGoal()
             end
         end)
     end
     RegisterUniqueHook("/Game/objects/warpbox.warpbox_C:player_use", function(self)
-        if AP == nil or completed then return end
-        if options.Objective ~= 5 then return end
+        if AP == nil or Completed then return end
+        if Options.Objective ~= 5 then return end
         for index=1,9 do
             local has_tile = self:get().tiles[index]
             if not has_tile then return end
@@ -656,11 +656,11 @@ RegisterConsoleCommandHandler("connect", function(FullCommand, Parameters)
     if #Parameters < 2 then
         return false
     end
-    local password = ""
+    local Password = ""
     if #Parameters == 3 then
-        password = Parameters[3]
+        Password = Parameters[3]
     end
-    ConnectToAP(Parameters[1], Parameters[2], password)
+    ConnectToAP(Parameters[1], Parameters[2], Password)
     return true
 end)
 
@@ -678,9 +678,9 @@ RegisterConsoleCommandHandler("panic", function(FullCommand, Parameters)
     if #Parameters < 1 then
         return false
     end
-    for _, item in ipairs(item_list) do
+    for _, item in ipairs(ItemList) do
         if item.flags & 1 > 0 then
-            local item_name = GetAPItemNameFromId(item.item)
+            local item_name = GetAPItemNameFromID(item.item)
             if item_name == Parameters[1] then
                 if AUTO_MAP[item_name] then
                     AddHint("You cannot replay auto redeemed items", HintType.Error)

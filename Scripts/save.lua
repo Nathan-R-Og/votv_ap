@@ -2,7 +2,7 @@ local Save = {
     ap_notebook = nil,
     received_items = 0,
     sold_garbage_bags = 0,
-    checked_location_names = {},
+    CheckedLocationNames = {},
     skip_claimed = {},
     pending_fuse_blowouts = 0,
     daily_tasks_done = 0,
@@ -63,9 +63,9 @@ function Save:LoadNotebookData()
 
         received_items = tonumber(ap_notebook.Text[2]:ToString()) or 0
         sold_garbage_bags = tonumber(ap_notebook.Text[3]:ToString()) or 0
-        checked_location_names = {}
+        CheckedLocationNames = {}
         for name in string.gmatch(ap_notebook.Text[4]:ToString() or "", "[^,]+") do
-            table.insert(checked_location_names, name)
+            table.insert(CheckedLocationNames, name)
         end
         skip_claimed = {}
         for name in string.gmatch(ap_notebook.Text[5]:ToString() or "", "[^,]+") do
@@ -86,10 +86,10 @@ end
 function Save:SaveDataToNotebook()
     local ap_notebook = self:GetAPNotebook()
     if ap_notebook and ap_notebook:IsValid() then
-        ap_notebook.Text[1] = FString(server .. "," .. slot .. "," .. password)
+        ap_notebook.Text[1] = FString(Server .. "," .. Slot .. "," .. Password)
         ap_notebook.Text[2] = FString(tostring(received_items))
         ap_notebook.Text[3] = FString(tostring(sold_garbage_bags))
-        ap_notebook.Text[4] = FString(table.concat(checked_location_names, ","))
+        ap_notebook.Text[4] = FString(table.concat(CheckedLocationNames, ","))
         ap_notebook.Text[5] = FString(table.concat(skip_claimed, ","))
         ap_notebook.Text[6] = FString(tostring(pending_fuse_blowouts))
         ap_notebook.Text[7] = FString(tostring(daily_tasks_done))
@@ -127,12 +127,12 @@ function Save:SetSoldGarbageBags(val)
 end
 
 function Save:GetCheckedLocationNames()
-    return checked_location_names
+    return CheckedLocationNames
 end
 
 function Save:AddCheckedLocationName(val)
-    table.insert(checked_location_names, val)
-    print("SAVE CHECKED LOCATIONS IS NOW " .. table.concat(checked_location_names, ","))
+    table.insert(CheckedLocationNames, val)
+    print("SAVE CHECKED LOCATIONS IS NOW " .. table.concat(CheckedLocationNames, ","))
     self:SaveDataToNotebook()
     return true
 end

@@ -20,9 +20,9 @@ end
 function GetSaveSlot()
     local gamemode = GetGameMode()
     if gamemode:IsValid() then
-        local slot = gamemode.saveSlot
-        if slot:IsValid() then
-            return slot
+        local Slot = gamemode.saveSlot
+        if Slot:IsValid() then
+            return Slot
         else
             return nil
         end
@@ -127,8 +127,8 @@ end
 --             --end
 
 --             -- local order = laptop.storeSlots
---             -- order:ForEach(function(index, slot)
---             --     print(tostring(slot.Data))
+--             -- order:ForEach(function(index, Slot)
+--             --     print(tostring(Slot.Data))
 --             -- end)
 
 --             -- print("doohucieky")
@@ -162,8 +162,8 @@ end
 --         drone.sendShop({{[1]=laptop.storeSlots[1].Data}, 0.0})
 
 --         local order = laptop.storeSlots
---         order:ForEach(function(index, slot)
---             print(tostring(slot.Data))
+--         order:ForEach(function(index, Slot)
+--             print(tostring(Slot.Data))
 --         end)
 
 --         print("bunge")
@@ -587,7 +587,7 @@ function CheckUnobtainableWorldItemLocations()
     local missing_keynames = {}
     local total = 0
     for _, id in ipairs(MissingLocations) do
-        local name = GetAPNamefromLocationID(id)
+        local name = GetAPLocationNameFromID(id)
         if name ~= nil then
             -- print("name: " .. tostring(name))
             local keyname = INVERSE_LOCATION_KEYS[name]
@@ -649,11 +649,11 @@ function CheckShopAndControlsUnlock(name, show_hint)
     end
     local count = 0
     for _, val in ipairs(group) do
-        count = count + (slot_data.ItemNames[val] or 0)
+        count = count + (SlotData.ItemNames[val] or 0)
     end
     if count > 0 then
         count = count - 1
-        slot_data.ItemNames[name] = slot_data.ItemNames[name] - 1
+        SlotData.ItemNames[name] = SlotData.ItemNames[name] - 1
         local props = itemToProps[group.group]
         local upgrade = ITEM_TO_UPGRADE[group.group]
         if count == 0 then

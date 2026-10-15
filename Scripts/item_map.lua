@@ -46,7 +46,7 @@ AUTO_MAP = {
         run = function()
             local gamemode = GetGameMode()
             if gamemode:IsValid() then
-                gamemode:AddPoints(options.BonusPointsAmount)
+                gamemode:AddPoints(Options.BonusPointsAmount)
             end
         end
     },
@@ -55,7 +55,7 @@ AUTO_MAP = {
         run = function()
             local save_slot = GetSaveSlot()
             if save_slot then
-                save_slot.arirReputation = save_slot.arirReputation + options.AriralReputationAmount
+                save_slot.arirReputation = save_slot.arirReputation + Options.AriralReputationAmount
             end
         end
     },
@@ -128,7 +128,7 @@ AUTO_MAP = {
         run = function()
             local save_slot = GetSaveSlot()
             if save_slot then
-                save_slot.arirReputation = save_slot.arirReputation - options.AriralReputationAmount
+                save_slot.arirReputation = save_slot.arirReputation - Options.AriralReputationAmount
             end
         end
     },
@@ -171,7 +171,7 @@ COMPLEX_ITEM_MAP = {
     ["Progressive Sleeping Bag"] = function()
         local i = 0
         for j=1,Save:GetRecievedItems() do
-            if GetAPItemNameFromId(item_list[j].item) == "Progressive Sleeping Bag" then
+            if GetAPItemNameFromID(ItemList[j].item) == "Progressive Sleeping Bag" then
                 i = i + 1
             end
         end
@@ -189,7 +189,7 @@ COMPLEX_ITEM_MAP = {
     ["Progressive Camera"] = function()
         local i = 0
         for j=1,Save:GetRecievedItems() do
-            if GetAPItemNameFromId(item_list[j].item) == "Progressive Camera" then
+            if GetAPItemNameFromID(ItemList[j].item) == "Progressive Camera" then
                 i = i + 1
             end
         end

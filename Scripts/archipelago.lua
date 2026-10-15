@@ -30,15 +30,15 @@ CheckedLocations = {}
 
 print("VOTV AP VERSION: " .. table.concat(mod_version, "."))
 
-options = nil
-slot_data = nil
-completed = false
-item_list = {}
-checked_location_names = {}
-server = nil
-slot = nil 
-password = nil
-death_link_enabled = false
+Options = nil
+SlotData = nil
+Completed = false
+ItemList = {}
+CheckedLocationNames = {}
+Server = nil
+Slot = nil 
+Password = nil
+DeathLinkEnabled = false
 LockedBreakers = {
     calculations = false,
     download = false,
@@ -59,9 +59,9 @@ unlockGroups = {
 }
 
 function connect(_server, _slot, _password)
-    server = _server
-    slot = _slot
-    password = _password
+    Server = _server
+    Slot = _slot
+    Password = _password
 
     function on_socket_connected()
         AddHint("Socket connected", HintType.Info)
@@ -74,12 +74,12 @@ function connect(_server, _slot, _password)
 
     function on_socket_disconnected()
         AddHint("Socket disconnected", HintType.Error)
-        item_list = {}
+        ItemList = {}
     end
 
     function on_room_info()
         AddHint("Room info", HintType.Info)
-        AP:ConnectSlot(slot, password, items_handling, {"Lua-APClientPP"}, client_version)
+        AP:ConnectSlot(Slot, Password, items_handling, {"Lua-APClientPP"}, client_version)
     end
 
     function on_slot_connected(slot_data_remote)
@@ -87,39 +87,39 @@ function connect(_server, _slot, _password)
         print("Locations checked: " .. table.concat(AP.checked_locations, ", "))
         print("Locations missing: " .. table.concat(AP.missing_locations, ", "))
         MissingLocations = AP.missing_locations
-        slot_data = slot_data_remote
-        options = slot_data.options
+        SlotData = slot_data_remote
+        Options = SlotData.options
 
         for _, location_id in ipairs(AP.checked_locations) do
             CheckLocation(location_id)
         end
 
-        if slot_data.Version then
+        if SlotData.Version then
             local mod_version_str = table.concat(mod_version, ".")
-            local ap_version_str = table.concat(slot_data.Version, ".")
+            local ap_version_str = table.concat(SlotData.Version, ".")
             local suffix = " (Mod: " .. mod_version_str .. ", AP: " .. ap_version_str .. ")"
-            if slot_data.Version[1] ~= mod_version[1] then
+            if SlotData.Version[1] ~= mod_version[1] then
                 AddHint("Major version difference with the apworld!!" .. suffix, HintType.Error)
-            elseif slot_data.Version[2] ~= mod_version[2] then
+            elseif SlotData.Version[2] ~= mod_version[2] then
                 AddHint("Minor version difference with the apworld!" .. suffix, HintType.Warning)
-            elseif slot_data.Version[3] ~= mod_version[3] then
+            elseif SlotData.Version[3] ~= mod_version[3] then
                 AddHint("Revision difference with the AP" .. suffix, HintType.Info)
             end
         end
 
         local save_slot = GetSaveSlot()
         if save_slot ~= nil then
-            if options.FunnySetting == 1 and not save_slot.localGameRules.funnySetting_29_3DBB4B5041357E51DA0DFBAD9368E881 then
+            if Options.FunnySetting == 1 and not save_slot.localGameRules.funnySetting_29_3DBB4B5041357E51DA0DFBAD9368E881 then
                 AddHint("The AP includes funny items, but the setting is not enabled!", HintType.Error)
             end
 
-            if options.TimeSensitive == 1 and save_slot.savedTime.Z < 8 then
+            if Options.TimeSensitive == 1 and save_slot.savedTime.Z < 8 then
                 AddHint("The Green Fire is enabled as a location, but it is not day 8+ yet!", HintType.Warning)
             end
         end
 
-        if options.DeathLink == 1 then
-            death_link_enabled = true
+        if Options.DeathLink == 1 then
+            DeathLinkEnabled = true
             AP:ConnectUpdate(nil, {"Lua-APClientPP", "DeathLink"})
         end
 
@@ -128,14 +128,14 @@ function connect(_server, _slot, _password)
         local store_datatable = StaticFindWithErrorHint("/Game/main/datatables/list_store.list_store")
         local recipes_datatable = StaticFindWithErrorHint("/Game/main/datatables/list_craftRecipes.list_craftRecipes")
         local props_datatable = StaticFindWithErrorHint("/Game/main/datatables/list_props.list_props")
-        for name, _ in pairs(slot_data.ItemNames) do
+        for name, _ in pairs(SlotData.ItemNames) do
             LockUpgradeControls(laptop, name)
             LockBreakers(laptop, power_control, name)
         end
         -- TODO: See how much those can be optimized, and also how much we can optimize replaying the items
-        LockShopItemsAndRecipes(store_datatable, recipes_datatable, props_datatable, slot_data.ItemNames)
-        LockRecipes(recipes_datatable, slot_data.ItemNames)
-        LockDoors(slot_data.ItemNames)
+        LockShopItemsAndRecipes(store_datatable, recipes_datatable, props_datatable, SlotData.ItemNames)
+        LockRecipes(recipes_datatable, SlotData.ItemNames)
+        LockDoors(SlotData.ItemNames)
         CheckUnobtainableWorldItemLocations()
         
         -- Kill the breakers if any of them got locked and is active
@@ -157,10 +157,10 @@ function connect(_server, _slot, _password)
     function on_items_received(received_items)
         print("Items received: " .. #received_items)
         local idx = Save:GetRecievedItems()
-        local is_initial = #item_list == 0
+        local is_initial = #ItemList == 0
         for _, item in ipairs(received_items) do
-            table.insert(item_list, item)
-            local name = GetAPItemNameFromId(item.item)
+            table.insert(ItemList, item)
+            local name = GetAPItemNameFromID(item.item)
 
             local auto = AUTO_MAP[name]
             if auto and auto.replay and (item.index < idx or Save:WasSkipClaimed(name)) then
@@ -179,7 +179,7 @@ function connect(_server, _slot, _password)
             end
         end
 
-        print("Total items received: " .. #item_list)
+        print("Total items received: " .. #ItemList)
         CheckAutoItem(idx)
 
         local laptop = FindFirstOf("ui_laptop_C")
@@ -193,7 +193,7 @@ function connect(_server, _slot, _password)
         for _, info in ipairs(infos) do
             if ScoutedLocations[info.location] == nil then
                 local item = AP:get_item_name(info.item, AP:get_player_game(info.player))
-                local location = GetAPNamefromLocationID(info.location)
+                local location = GetAPLocationNameFromID(info.location)
                 print("scouted item " .. item .. " in location " .. location)
                 if location == nil then
                     print("we sajdklajskl")
@@ -226,9 +226,9 @@ function connect(_server, _slot, _password)
     function CheckLocation(location_id)
         CheckedLocations[location_id] = true
         table.insert(LocationsToCheck, location_id)
-        local name = GetAPNamefromLocationID(location_id)
+        local name = GetAPLocationNameFromID(location_id)
         if name ~= nil then
-            table.insert(checked_location_names, name)
+            table.insert(CheckedLocationNames, name)
         end
     end
 
@@ -253,10 +253,10 @@ function connect(_server, _slot, _password)
         for k,v in pairs(bounce) do
             print(k .. ": " .. tostring(v))
         end
-        if bounce.tags and array_contains(bounce.tags, "DeathLink") and death_link_enabled then
+        if bounce.tags and array_contains(bounce.tags, "DeathLink") and DeathLinkEnabled then
             local cause = #bounce.data.cause > 0 and bounce.data.cause or (bounce.data.source .. " died. What a shame!")
             AddHint(cause, HintType.Error)
-            death_link_enabled = false
+            DeathLinkEnabled = false
             MakePlayerInexplicablyDie()
         end
     end
@@ -288,8 +288,8 @@ function connect(_server, _slot, _password)
     end
 
     local uuid = ""
-    AP = APClient(uuid, game_name, server)
-    AddHint("Connecting to " .. server .. " ...", HintType.Warning)
+    AP = APClient(uuid, game_name, Server)
+    AddHint("Connecting to " .. Server .. " ...", HintType.Warning)
     AP:set_socket_connected_handler(on_socket_connected)
     AP:set_socket_error_handler(on_socket_error)
     AP:set_socket_disconnected_handler(on_socket_disconnected)
@@ -307,9 +307,9 @@ function connect(_server, _slot, _password)
     AP:set_set_reply_handler(on_set_reply)
 end
 
-function ConnectToAP(host, slot, password)
+function ConnectToAP(host, Slot, Password)
     ExecuteAsync(function()
-        connect(host, slot, password)
+        connect(host, Slot, Password)
     end)
 
     LoopAsync(200, function()
@@ -339,44 +339,44 @@ end
 function disconnect()
     if AP == nil then return end
     CheckedLocations = {}
-    item_list = {}
+    ItemList = {}
     AP = nil
     HaveDays = 0
     sold_garbage_bags = 0
-    death_link_enabled = false
+    DeathLinkEnabled = false
     for k, _ in pairs(LockedBreakers) do LockedBreakers[k] = false end
     collectgarbage("collect")
     AddHint("Successfully Disconnected.\nHave a good day!", HintType.Warning)
 end
 
-function IsLocationChecked(locationID)
-    return CheckedLocations[locationID] ~= nil
+function IsLocationChecked(location_id)
+    return CheckedLocations[location_id] ~= nil
 end
 
-function GetAPLocationIDfromName(locationName)
+function GetAPLocationIDFromName(location_name)
     if AP == nil then return nil end
-    return AP:get_location_id(locationName)
+    return AP:get_location_id(location_name)
 end
 
-function GetAPNamefromLocationID(locationID)
+function GetAPLocationNameFromID(location_id)
     if AP == nil then return nil end
-    return AP:get_location_name(locationID, nil)
+    return AP:get_location_name(location_id, nil)
 end
 
-function GetAPItemIdFromName(itemName)
+function GetAPItemIDFromName(item_name)
     if AP == nil then return nil end
-    return AP:get_item_id(itemName)
+    return AP:get_item_id(item_name)
 end
 
-function GetAPItemNameFromId(itemId)
+function GetAPItemNameFromID(item_id)
     if AP == nil then return nil end
-    return AP:get_item_name(itemId, nil)
+    return AP:get_item_name(item_id, nil)
 end
 
 function ScoutLocationByName(location_name)
     if AP == nil then return end
 
-    local id = GetAPLocationIDfromName(location_name)
+    local id = GetAPLocationIDFromName(location_name)
     ScoutLocation(id)
 end
 
@@ -391,7 +391,7 @@ end
 
 function SendLocation(location_name)
     print("Looking for " .. location_name)
-    local id = GetAPLocationIDfromName(location_name)
+    local id = GetAPLocationIDFromName(location_name)
     return SendLocationId(id)
 end
 
@@ -414,5 +414,5 @@ function ReachGoal()
     if AP == nil then return end
     AP:StatusUpdate(AP.ClientStatus.GOAL)
     AddHint("You have reached your goal, congratulations!", HintType.Info)
-    completed = true
+    Completed = true
 end
